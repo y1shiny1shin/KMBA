@@ -13,6 +13,7 @@ import javax.annotation.PreDestroy;
 import com.kmba.tunnel.ArthasWsWrapper;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -25,18 +26,14 @@ import java.nio.file.StandardCopyOption;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/arthas")
 public class ArthasController {
     private static final Logger logger = LoggerFactory.getLogger(ArthasController.class);
-    private static final Map<String, Process> arthasProcesses = new ConcurrentHashMap<>();
     private static final String EMBEDDED_ARTHAS_BOOT = "/arthas/arthas-boot.jar";
     private static volatile String cachedArthasBootPath;
-    private static volatile Long localArthasBootPid;
+    private static volatile Process localArthasProcess;
     private static volatile java.lang.Thread kmbaMainThread;
     private static volatile boolean shuttingDown = false;
     private static volatile boolean hookRegistered = false;
@@ -71,7 +68,8 @@ public class ArthasController {
         JSONArray processes = new JSONArray();
         try {
             final long selfPid = getCurrentPid();
-            Process process = Runtime.getRuntime().exec("jps -l");
+            ProcessBuilder pb = new ProcessBuilder(resolveJpsBin(), "-l").redirectErrorStream(true);
+            Process process = pb.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
@@ -111,13 +109,12 @@ public class ArthasController {
             closeGlobalWsWrapperQuietly();
             captureMainThreadIfNeeded();
 
-            final long bootPid = startLocalArthasBoot(pid);
-            System.out.println(bootPid);
-            if (bootPid <= 0) {
+            final Process bootProc = startLocalArthasBoot(pid);
+            if (bootProc == null || !bootProc.isAlive()) {
                 return "error: failed to start local arthas-boot";
             }
-            localArthasBootPid = bootPid;
-            startMainThreadGuard(bootPid, pid);
+            localArthasProcess = bootProc;
+            startMainThreadGuard(bootProc, pid);
 
             // Wait until local ws port is ready, so subsequent list/jad calls won't hang.
             if (!waitPortOpen("127.0.0.1", LOCAL_WS_PORT, 8000)) {
@@ -176,45 +173,35 @@ public class ArthasController {
             forceStopAllArthas();
             return;
         }
-        Long pid = localArthasBootPid;
-        if (pid != null) {
-            try {
-                killPid(pid, false);
-                long deadline = System.currentTimeMillis() + 2000;
-                while (System.currentTimeMillis() < deadline && isPidAlive(pid)) {
-                    java.lang.Thread.sleep(120);
-                }
-                if (isPidAlive(pid)) {
-                    killPid(pid, true);
-                }
-                logger.info("Stopped old Arthas process (pid={})", pid);
-            } catch (Exception e) {
-                logger.error("Error stopping Arthas process (pid=" + pid + ")", e);
-            } finally {
-                localArthasBootPid = null;
-            }
-        }
-        Process p = arthasProcesses.remove("current");
+        Process p = localArthasProcess;
         if (p != null) {
             try {
-                p.destroyForcibly();
-            } catch (Exception ignored) {}
+                p.destroy();
+                long deadline = System.currentTimeMillis() + 2000;
+                while (System.currentTimeMillis() < deadline && p.isAlive()) {
+                    java.lang.Thread.sleep(120);
+                }
+                if (p.isAlive()) {
+                    p.destroyForcibly();
+                }
+                logger.info("Stopped old Arthas process");
+            } catch (Exception e) {
+                logger.error("Error stopping Arthas process", e);
+            } finally {
+                localArthasProcess = null;
+            }
         }
     }
 
     private static void forceStopAllArthas() {
-        Long pid = localArthasBootPid;
-        if (pid != null) {
+        Process p = localArthasProcess;
+        if (p != null) {
             try {
-                killPid(pid, true);
+                p.destroyForcibly();
             } catch (Exception ignored) {
             } finally {
-                localArthasBootPid = null;
+                localArthasProcess = null;
             }
-        }
-        Process p = arthasProcesses.remove("current");
-        if (p != null) {
-            try { p.destroyForcibly(); } catch (Exception ignored) {}
         }
     }
 
@@ -282,13 +269,13 @@ public class ArthasController {
         }
     }
 
-    private void startMainThreadGuard(long localBootPid, String targetPid) {
+    private void startMainThreadGuard(Process bootProc, String targetPid) {
         java.lang.Thread guard = new java.lang.Thread(() -> {
-            while (isPidAlive(localBootPid)) {
+            while (bootProc.isAlive()) {
                 try {
                     if (shouldStopLocalArthas()) {
                         logger.info("Detected KMBA main thread exit/interruption, stop local arthas pid={}", targetPid);
-                        stopIfSamePid(localBootPid);
+                        stopIfSameProcess(bootProc);
                         break;
                     }
                     java.lang.Thread.sleep(500);
@@ -308,9 +295,9 @@ public class ArthasController {
         return main != null && (main.isInterrupted() || !main.isAlive());
     }
 
-    private void stopIfSamePid(long expectedPid) {
-        Long cur = localArthasBootPid;
-        if (cur == null || cur.longValue() != expectedPid) return;
+    private void stopIfSameProcess(Process expected) {
+        Process cur = localArthasProcess;
+        if (cur == null || cur != expected) return;
         stopAllArthas();
     }
 
@@ -323,54 +310,38 @@ public class ArthasController {
         }
     }
 
-    private static String shQuote(String s) {
-        String x = String.valueOf(s);
-        return "'" + x.replace("'", "'\"'\"'") + "'";
+    private static String resolveJavaBin() {
+        String javaHome = System.getProperty("java.home");
+        String exeName = isWindows() ? "java.exe" : "java";
+        if (javaHome != null && !javaHome.isEmpty()) {
+            File f = new File(javaHome, "bin" + File.separator + exeName);
+            if (f.isFile()) return f.getAbsolutePath();
+        }
+        return exeName;
     }
 
-    private static void killPid(long pid, boolean force) throws IOException {
-        if (pid <= 0) return;
-        if (isWindows()) {
-            throw new IOException("kill is not supported on Windows");
+    private static String resolveJpsBin() {
+        String javaHome = System.getProperty("java.home");
+        String exeName = isWindows() ? "jps.exe" : "jps";
+        if (javaHome != null && !javaHome.isEmpty()) {
+            File f = new File(javaHome, "bin" + File.separator + exeName);
+            if (f.isFile()) return f.getAbsolutePath();
+            // Java 8 JRE 嵌在 JDK 内的常见布局：<jdk>/jre 是 java.home，jps 在 <jdk>/bin。
+            File parentBin = new File(new File(javaHome).getParentFile(), "bin" + File.separator + exeName);
+            if (parentBin.isFile()) return parentBin.getAbsolutePath();
         }
-        String sig = force ? "-KILL" : "-TERM";
-        Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", "kill " + sig + " " + pid});
+        return exeName;
     }
 
-    private static boolean isPidAlive(long pid) {
-        if (pid <= 0) return false;
-        if (isWindows()) return false;
-        try {
-            Process p = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", "kill -0 " + pid + " >/dev/null 2>&1"});
-            try { p.waitFor(400, java.util.concurrent.TimeUnit.MILLISECONDS); } catch (Throwable ignored) {}
-            return p.exitValue() == 0;
-        } catch (Throwable t) {
-            return false;
-        }
-    }
-
-    private long startLocalArthasBoot(String targetJvmPid) throws IOException {
-        if (isWindows()) {
-            throw new IOException("local arthas boot start via sh is not supported on Windows");
-        }
+    private Process startLocalArthasBoot(String targetJvmPid) throws IOException {
         String arthasBootPath = ensureArthasBootPath();
-
-        // Use Runtime.exec + sh to start in background and capture PID ($!).
-        String cmd =
-                "java -jar " + shQuote(arthasBootPath) + " " + shQuote(targetJvmPid) +
-                        " </dev/null >/dev/null 2>&1 & echo $!";
-        Process p = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-            String line = r.readLine();
-            if (line == null) return -1;
-            try {
-                return Long.parseLong(line.trim());
-            } catch (NumberFormatException nfe) {
-                return -1;
-            }
-        } finally {
-            try { p.destroy(); } catch (Exception ignored) {}
-        }
+        File devNull = new File(isWindows() ? "NUL" : "/dev/null");
+        ProcessBuilder pb = new ProcessBuilder(
+                resolveJavaBin(), "-jar", arthasBootPath, targetJvmPid)
+                .redirectInput(ProcessBuilder.Redirect.from(devNull))
+                .redirectOutput(ProcessBuilder.Redirect.to(devNull))
+                .redirectError(ProcessBuilder.Redirect.to(devNull));
+        return pb.start();
     }
 
     private String ensureArthasBootPath() throws IOException {

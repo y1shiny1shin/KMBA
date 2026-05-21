@@ -1,7 +1,7 @@
 # KMBA — Tomcat 内存马查杀工具
 
 KMBA 是一个基于 Web 的 Java 内存马应急响应工具，用于检测、分析和清除 Apache Tomcat 服务器中的内存 webshell（内存马）。它使用 [Arthas](https://arthas.aliyun.com/) 作为诊断引擎，通过 OGNL 表达式和 `vmtool` 命令直接检查运行中的 JVM 内部状态，无需重启目标应用。
-
+![img.png](img.png)
 
 ## 功能特性
 

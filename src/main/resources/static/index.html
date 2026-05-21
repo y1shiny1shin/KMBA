@@ -1549,21 +1549,11 @@
                 return;
             }
             const pid = raw;
-            const op = dock.push('直接连接 PID', '校验 JVM: pid=' + pid, 'busy');
+            const op = dock.push('直接连接 PID', 'attach pid=' + pid + ' ...', 'busy');
 
-            // Ensure we have a fresh JVM list; jps is the source of truth for "is JVM".
-            await ui.refreshProcList();
-            const hit = state.lastProcList.find(p => String(p.pid || '') === pid);
-            if (!hit){
-                dock.update(op, { level:'err', time: nowTime(), msg:'该 PID 不是可识别的 JVM 进程（jps 未列出）: ' + pid });
-                return;
-            }
-
-            const name = String(hit.name || '');
-            dock.update(op, { msg:'attach pid=' + pid + ' ...' });
             const res = (await apiText('/arthas/connect?pid=' + encodeURIComponent(pid))).trim();
             if (res === 'success'){
-                setTarget('local', 'local pid=' + pid + ' · ' + name);
+                setTarget('local', 'local pid=' + pid);
                 dock.update(op, { level:'ok', time: nowTime(), msg:'连接成功: pid=' + pid });
                 closeMask('maskConnect');
             } else {

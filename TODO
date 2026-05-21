@@ -1,0 +1,2 @@
+添加Windows支持 //local arthas boot start via sh is not supported on Windows
+解决tools.jar问题 // 要attach就必须要有tools.jar，jre中不存在tools.jar，且不同版本不同平台的tools.jar存在区别
