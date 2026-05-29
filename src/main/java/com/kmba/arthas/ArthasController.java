@@ -37,6 +37,7 @@ public class ArthasController {
     private static volatile java.lang.Thread kmbaMainThread;
     private static volatile boolean shuttingDown = false;
     private static volatile boolean hookRegistered = false;
+    private static volatile Path lastArthasBootLog;
     private static final int LOCAL_WS_PORT = 8563;
 
     @PostConstruct
@@ -118,7 +119,13 @@ public class ArthasController {
 
             // Wait until local ws port is ready, so subsequent list/jad calls won't hang.
             if (!waitPortOpen("127.0.0.1", LOCAL_WS_PORT, 8000)) {
-                return "error: local arthas ws port not ready: " + LOCAL_WS_PORT;
+                String tail = readLastLines(lastArthasBootLog, 30);
+                logger.error("arthas-boot did not open ws port {} in time. Last output:\n{}", LOCAL_WS_PORT, tail);
+                if (isPortInUseByOther()) {
+                    return "error: 端口 " + LOCAL_WS_PORT + " 已被其他进程占用，无法启动 arthas（请先关闭占用该端口的进程，或用『远程连接』指向已存在的 arthas server）";
+                }
+                return "error: local arthas ws port not ready: " + LOCAL_WS_PORT
+                        + (tail.isEmpty() ? "" : "\n--- arthas-boot output ---\n" + tail);
             }
             ArthasWsWrapper.setGlobalAgentInfo("127.0.0.1", LOCAL_WS_PORT);
             return "success";
@@ -335,13 +342,38 @@ public class ArthasController {
 
     private Process startLocalArthasBoot(String targetJvmPid) throws IOException {
         String arthasBootPath = ensureArthasBootPath();
+        Path logFile = Files.createTempFile("kmba-arthas-boot-", ".log");
+        logFile.toFile().deleteOnExit();
+        lastArthasBootLog = logFile;
         File devNull = new File(isWindows() ? "NUL" : "/dev/null");
         ProcessBuilder pb = new ProcessBuilder(
                 resolveJavaBin(), "-jar", arthasBootPath, targetJvmPid)
                 .redirectInput(ProcessBuilder.Redirect.from(devNull))
-                .redirectOutput(ProcessBuilder.Redirect.to(devNull))
-                .redirectError(ProcessBuilder.Redirect.to(devNull));
+                .redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.to(logFile.toFile()));
         return pb.start();
+    }
+
+    private static String readLastLines(Path file, int n) {
+        if (file == null) return "";
+        try {
+            if (!Files.exists(file)) return "";
+            List<String> all = Files.readAllLines(file);
+            int from = Math.max(0, all.size() - n);
+            return String.join("\n", all.subList(from, all.size()));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static boolean isPortInUseByOther() {
+        try (java.net.ServerSocket ss = new java.net.ServerSocket()) {
+            ss.setReuseAddress(false);
+            ss.bind(new InetSocketAddress("127.0.0.1", LOCAL_WS_PORT), 1);
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     private String ensureArthasBootPath() throws IOException {

@@ -57,7 +57,7 @@ Spring Boot 2.6.13 (KMBA)  ──WebSocket──▶  Arthas Agent (目标 JVM)
 
 ```bash
 mvn clean package -DskipTests
-java -jar target/KMBA-0.0.1-SNAPSHOT.jar
+java -jar target/KMBA-0.1.jar
 ```
 
 启动后浏览器访问 `http://localhost:9099`。
