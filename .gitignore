@@ -2,3 +2,6 @@
 FindShell/
 copagent/
 target/
+release.sh
+.release_tmp/
+.release_out/
