@@ -1,16 +1,11 @@
 package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.kmba.Utils.ArthasStringUtil;
-import com.kmba.Utils.TomcatUtil;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import com.kmba.Utils.Dict.*;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -74,7 +69,7 @@ public class Listener {
                 }
 //                ArthasStringUtil.print(result);
             }
-            logger.info("/listener/list: " + jsonArray);
+            logger.info("/listener/list: {} " , jsonArray);
             return jsonArray;
         } catch (InterruptedException e) {
             logger.error(e.getMessage());

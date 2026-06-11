@@ -49,7 +49,7 @@ public class JAD {
 
             List<String> classSourceCode = wrapper.runCmd(String.format(jadClassName, className));
 
-            logger.info("/jad/jad: " + className);
+            logger.info("/jad/jad: {}" ,className);
             String result = String.join("\n", classSourceCode);
 
             return result;
@@ -69,7 +69,7 @@ public class JAD {
             List<String> classSourceCode = wrapper.runCmd(
                     String.format(jadClassNameHash ,classLoaderHashCode ,className));
 
-            logger.info("/jad/jadHash: " + className + "/" + classLoaderHashCode);
+            logger.info("/jad/jadHash: {}" , className + "/" + classLoaderHashCode);
             String result = String.join("\n", classSourceCode);
 
             return result;
@@ -118,7 +118,7 @@ public class JAD {
                 }
             }
 
-            logger.info("/jad/hashcode: " + result);
+            logger.info("/jad/hashcode: {}" , result);
             return result;
         } catch (InterruptedException e) {
             logger.error(e.getMessage());

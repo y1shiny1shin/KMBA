@@ -3,6 +3,7 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,24 +36,11 @@ public class Upgrade {
         try{
             JSONArray jsonArray = new JSONArray();
 
-            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
-            List<String> result = new ArrayList<>();
-
-            for (int i=0;i<tomcatSiteCnt;i++){
-                String cmd = String.format(listUpgradeByVmtool, i);
-                List<String> result0 = wrapper.runCmd(cmd);
-
-                for (String s:result0){
-                    if (!(s.isEmpty() || s == null)) result.add(s);
-                }
-            }
+            String resultAll = Util.getListResult(tomcatSiteCnt ,listUpgradeByVmtool);
 
             String regex = "\\@String\\[(\\w+)\\]\\:\\@(\\w+)\\[([0-9a-zA-Z.$_]+)\\@";
 
             Pattern pattern = Pattern.compile(regex);
-
-            String resultAll = String.join("", result);
 
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -63,7 +51,7 @@ public class Upgrade {
                     jsonArray.add(jsonObject);
                 }
             }
-            logger.info("/upgrade/list: " +jsonArray.toJSONString());
+            logger.info("/upgrade/list: {}"  ,jsonArray.toJSONString());
 
             return jsonArray;
         } catch (Exception e){

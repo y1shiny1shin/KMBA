@@ -1,34 +1,8 @@
 package com.kmba;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.kmba.Utils.ArthasWsClient;
-import com.kmba.Utils.ArthasWsRequest;
-import com.kmba.Utils.TomcatUtil;
-import com.kmba.pojo.AgentInfo;
-import com.kmba.tunnel.ArthasWsWrapper;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.math.BigInteger;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.kmba.Utils.Dict.*;
 
@@ -51,7 +25,7 @@ public class TestMain {
 //                System.out.println(iterator.next());
 //            }
 
-//            System.out.println(new TomcatUtil().getTomcatSiteCnt());
+//            System.out.println(new Util().getTomcatSiteCnt());
 
 // Listener正则测试
 //            String text = "@CopyOnWriteArrayList[\n" +
@@ -163,7 +137,7 @@ public class TestMain {
 //        try{
 //            // 初始化，防止初始化的输出进到执行中
 //            wrapper.runCmd0("help");
-//            int cnt = TomcatUtil.getTomcatSiteCnt();
+//            int cnt = Util.getTomcatSiteCnt();
 //            List<String> result = wrapper.runCmd0(cmd);
 //            System.out.println(String.join("" ,result));
 //        } catch (InterruptedException e) {

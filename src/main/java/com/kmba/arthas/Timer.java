@@ -1,11 +1,10 @@
 package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
-import com.kmba.Utils.TomcatUtil;
+import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,7 +31,7 @@ public class Timer {
     @RequestMapping("/list")
     public JSONArray list() {
         try{
-//            int timerCnt = TomcatUtil.getTimerCnt();
+//            int timerCnt = Util.getTimerCnt();
 
             JSONArray jsonArray = new JSONArray();
             List<String> result = new ArrayList<>();
@@ -74,7 +73,7 @@ public class Timer {
     @RequestMapping("/unload")
     public String unload(@RequestParam String className) {
         try{
-            int timerCnt = TomcatUtil.getTimerCnt();
+            int timerCnt = Util.getTimerCnt();
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
             for (int i=0; i<timerCnt; i++){
@@ -94,7 +93,7 @@ public class Timer {
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
-            int timerCnt = TomcatUtil.getTimerCnt();
+            int timerCnt = Util.getTimerCnt();
 
             for (int i=0; i<timerCnt; i++){
                 String cmd = String.format(unloadTimerByVmtoolForcly, i ,className);

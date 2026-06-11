@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.kmba.Utils.ArthasWsClient;
+import com.kmba.Utils.Util;
 import com.kmba.pojo.AgentInfo;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
@@ -35,19 +36,6 @@ public class Filter {
         try{
             JSONArray jsonArray = new JSONArray();
 
-            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
-            List<String> result = new ArrayList<>();
-
-            for (int i=0;i<tomcatSiteCnt;i++){
-                String cmd = String.format(listFilterByVmtool, i ,i);
-
-                List<String> result0 = wrapper.runCmd(cmd);
-                 for (String s:result0){
-                     if (!(s.isEmpty() || s == null)) result.add(s);
-                 }
-            }
-
 //            String regex = "filterName=([^,]+),\\s*urlPattern=([^\\]]+)";
 //            @ArrayList[
 //            @String[/test:com.TestFilter:com.TestFilter],
@@ -57,8 +45,8 @@ public class Filter {
             String regex = "@String\\[(.*?):(.*?):(.*?)\\]";
             Pattern pattern = Pattern.compile(regex);
 
-            String resultAll = String.join("", result);
-            System.out.println(resultAll);
+            String resultAll = Util.getListResult(tomcatSiteCnt ,listFilterByVmtool);
+
             Matcher matcher = pattern.matcher(resultAll);
 
             while (matcher.find()) {
@@ -72,7 +60,7 @@ public class Filter {
                 jsonObject.put("className", matcher.group(3));
                 jsonArray.add(jsonObject);
             }
-            logger.info(jsonArray.toJSONString());
+            logger.info("/filter/list: {}" ,jsonArray.toJSONString());
             System.out.println(jsonArray.toJSONString());
             return jsonArray;
         }catch (Exception e){
@@ -87,7 +75,7 @@ public class Filter {
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadFilterByVmtool , i , URLPattern);
-                logger.info("/filter/unload: "+wrapper.runCmd(cmd));
+                logger.info("/filter/unload: {}" ,wrapper.runCmd(cmd));
             }
             return "success";
 

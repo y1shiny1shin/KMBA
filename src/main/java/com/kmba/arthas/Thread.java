@@ -2,12 +2,10 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.kmba.Utils.ArthasWsClient;
-import com.kmba.Utils.TomcatUtil;
+import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,22 +38,9 @@ public class Thread {
     public JSONArray list(){
         try{
             JSONArray jsonArray = new JSONArray();
-            int threadCnt = TomcatUtil.getThreadCnt();
+            int threadCnt = Util.getThreadCnt();
 
-            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
-            List<String> result = new ArrayList<>();
-
-            for (int i = 0; i < threadCnt; i++) {
-                String cmd = String.format(listThreadByVmtool, i);
-
-                List<String> result0 = wrapper.runCmd(cmd);
-                System.out.println(result0);
-                for (String s: result0)
-                    if (!(s.isEmpty() || s==null))
-                        result.add(s);
-            }
-            String resultAll = String.join("", result);
+            String resultAll = Util.getListResult(threadCnt ,listThreadByVmtool);
 
             String regex = "\\@String\\[(.*?)\\:([0-9a-zA-Z.$_]+)\\]";
             Pattern pattern = Pattern.compile(regex);
@@ -69,7 +54,7 @@ public class Thread {
                 }
                 jsonArray.add(jsonObject);
             }
-            logger.info("/thread/list: "+jsonArray);
+            logger.info("/thread/list: {}" ,jsonArray);
 
             return jsonArray;
         } catch (Exception e){
@@ -82,7 +67,7 @@ public class Thread {
     public String unload(@RequestParam String threadName , @RequestParam String className ){
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-            int threadCnt = TomcatUtil.getThreadCnt();
+            int threadCnt = Util.getThreadCnt();
 
             for (int i = 0; i < threadCnt; i++) {
                 String cmd = String.format(unloadThreadByVmtool, i , threadName , className);

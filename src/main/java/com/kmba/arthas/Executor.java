@@ -1,11 +1,10 @@
 package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
-import com.kmba.Utils.TomcatUtil;
+import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -61,7 +60,7 @@ public class Executor {
                 jsonArray.add(matcher.group(1));
             }
 
-            logger.info("/executor/list: "+jsonArray.toJSONString());
+            logger.info("/executor/list: {}" ,jsonArray.toJSONString());
 
             return jsonArray;
         } catch (Exception e){
@@ -75,12 +74,12 @@ public class Executor {
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
-            int cnt = TomcatUtil.getEndpointCnt();
+            int cnt = Util.getEndpointCnt();
 
             for (int i=0 ;i<cnt ;i++){
                 String cmd = String.format(unloadExecutorByVmtoolBrutly ,i ,className);
 
-                logger.info("/executor/unloadBrutly: "+wrapper.runCmd(cmd));
+                logger.info("/executor/unloadBrutly: {}" ,wrapper.runCmd(cmd));
             }
 
             return "success";
@@ -96,7 +95,7 @@ public class Executor {
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
-            int cnt = TomcatUtil.getEndpointCnt();
+            int cnt = Util.getEndpointCnt();
 
             for (int i=0 ;i<cnt ;i++){
                 String cmd = String.format(unloadExecutorByVmtoolGently ,i ,className);

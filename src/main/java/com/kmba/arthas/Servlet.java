@@ -2,11 +2,9 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.kmba.Utils.TomcatUtil;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -73,7 +71,7 @@ public class Servlet {
                     System.out.println(jsonArray);
                 }
             }
-            logger.info("/servlet/list: "+jsonArray.toString());
+            logger.info("/servlet/list: {}", jsonArray.toString());
             return jsonArray;
         } catch (Exception e) {
             logger.error(e.getMessage());

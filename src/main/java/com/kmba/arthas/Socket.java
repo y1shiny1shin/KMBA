@@ -2,11 +2,10 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.kmba.Utils.TomcatUtil;
+import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,6 +15,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.kmba.Utils.Dict.tomcatSiteCnt;
 
 
 @RestController
@@ -33,21 +33,10 @@ public class Socket {
     @RequestMapping("/list")
     public JSONArray list() {
         try{
-            int socketCnt = TomcatUtil.getSocketCnt();
+            int socketCnt = Util.getSocketCnt();
             JSONArray jsonArray = new JSONArray();
 
-            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
-            List<String> result = new ArrayList<>();
-            for(int i = 0; i < socketCnt; i++) {
-                String cmd = String.format(listSocketByVmtool, i);
-                List<String> result0 = wrapper.runCmd(cmd);
-
-                for (String s : result0) {
-                    if (!(s.isEmpty() || s==null)) result.add(s);
-                }
-            }
-            String resultAll = String.join("" ,result);
+            String resultAll = Util.getListResult(socketCnt ,listSocketByVmtool);
 
 
             String regex = "\\@String\\[(.*?):([0-9a-zA-Z.$_]+)\\]";
@@ -78,7 +67,7 @@ public class Socket {
     @RequestMapping("/unload")
     public String unload(@RequestParam String urlName , @RequestParam String className) {
         try{
-            int socketCnt = TomcatUtil.getSocketCnt();
+            int socketCnt = Util.getSocketCnt();
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             for (int i = 0; i < socketCnt; i++) {
