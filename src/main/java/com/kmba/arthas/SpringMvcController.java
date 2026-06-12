@@ -2,6 +2,7 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kmba.Utils.OGNLUtils;
 import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
@@ -14,6 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.kmba.Utils.Dict.ENTER;
+import static com.kmba.Utils.Dict.Strict_Option;
 
 /**
  * https://party.mem.mk/ui
@@ -37,14 +41,18 @@ public class SpringMvcController {
             int springCnt = Util.getSpringCnt();
             JSONArray jsonArray = new JSONArray();
 
+            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
+
+            List<String> result = new ArrayList<>();
+            wrapper.runCmd(Strict_Option+ENTER);
+
+            OGNLUtils.setStrictModeClose();
+
             // [@LinkedHashMap[@String[/exec]:@evalController[com.DemoSpring.evalController@25655ffa]]]
             String resultAll = Util.getListResult(springCnt ,listSMCByVmtool);
             String regex = "@String\\[(.*?)\\]:@evalController\\[([0-9a-zA-Z.$_]+)@[0-9a-f]{8}";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
-
-//            System.out.println(resultAll);
-//            System.out.println(matcher);
 
             while (matcher.find()) {
                 JSONObject jsonObject = new JSONObject();

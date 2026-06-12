@@ -67,7 +67,9 @@ const modules = [
     { id:'executor', title:'Executor', desc:'className', list:'/executor/list' },
     { id:'thread', title:'Thread', desc:'threadName -> className', list:'/thread/list' },
     { id:'timer', title:'Timer', desc:'className', list:'/timer/list' },
-    { id:'upgrade', title:'Upgrade', desc:'upgradeName -> className', list:'/upgrade/list' }
+    { id:'upgrade', title:'Upgrade', desc:'upgradeName -> className', list:'/upgrade/list' },
+    { id:'smc', title:'SpringMVC Controller', desc:'urlPath -> className', list:'/SMC/list' },
+    { id:'smi', title:'SpringMVC Interceptor', desc:'className', list:'/SMI/list' }
 ];
 
 function signature(moduleId, row){
@@ -713,6 +715,8 @@ const ui = {
         if (moduleId === 'valve'){ qs.set('className', row.className || ''); return { url:'/valve/unload', qs }; }
         if (moduleId === 'thread'){ qs.set('threadName', row.key || ''); qs.set('className', row.className || ''); return { url:'/thread/unload', qs }; }
         if (moduleId === 'upgrade'){ qs.set('upgradeName', row.key || ''); return { url:'/upgrade/unload', qs }; }
+        if (moduleId === 'smc'){ qs.set('urlPath', row.key || ''); return { url:'/SMC/unload', qs }; }
+        if (moduleId === 'smi'){ qs.set('className', row.className || ''); return { url:'/SMI/unload', qs }; }
         return { url:'', qs };
     },
 

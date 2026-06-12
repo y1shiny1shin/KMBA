@@ -2,6 +2,7 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kmba.Utils.OGNLUtils;
 import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
@@ -15,8 +16,14 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.kmba.Utils.Dict.ENTER;
+import static com.kmba.Utils.Dict.Strict_Option;
+
 /**
  * https://liaoxuefeng.com/books/java/spring/web/interceptor/index.html
+ * https://party.mem.mk/ui
+ * https://jlkl.github.io/2022/05/26/Java-09/
+ * https://goodapple.top/archives/1355
  */
 @RestController
 @RequestMapping("/SMI")
@@ -38,6 +45,13 @@ public class SpringMvcInterceptor {
             int springCnt = Util.getSpringCnt();
 
             JSONArray jsonArray = new JSONArray();
+
+            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
+
+            List<String> result = new ArrayList<>();
+            wrapper.runCmd(Strict_Option+ENTER);
+
+            OGNLUtils.setStrictModeClose();
 
             String resultAll = Util.getListResult(springCnt ,listSMIByVmtool);
             System.out.println(resultAll);
