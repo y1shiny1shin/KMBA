@@ -38,13 +38,10 @@ public class Socket {
 
             String resultAll = Util.getListResult(socketCnt ,listSocketByVmtool);
 
-
             String regex = "\\@String\\[(.*?):([0-9a-zA-Z.$_]+)\\]";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 
-            System.out.println(resultAll);
-            System.out.println(matcher);
             while (matcher.find()) {
                 JSONObject jsonObject = new JSONObject();
                 if (!(matcher.group(1).isEmpty()&&matcher.group(2).isEmpty()))
@@ -52,7 +49,7 @@ public class Socket {
                 jsonArray.add(jsonObject);
             }
 
-            logger.info("/socket/list: " + jsonArray.toJSONString());
+            logger.info("/socket/list: {}" ,jsonArray.toJSONString());
 
             return jsonArray;
         } catch (Exception e){

@@ -115,8 +115,8 @@ public class ArthasWsWrapper {
         try {
             return output.subList(cmdLength, output.size());
         } catch (Exception e) {
-            System.out.println(cmd);
-            System.out.println(output);
+            System.err.println(cmd);
+            System.err.println(output);
             return null;
         }
 
@@ -127,8 +127,14 @@ public class ArthasWsWrapper {
             if (globalAgentInfo == null) {
                 setGlobalAgentInfo("127.0.0.1", 8563);
             }
-            globalWrapper = new ArthasWsWrapper(globalAgentInfo);
-            globalWrapper.createArthasWsClient();
+            ArthasWsWrapper w = new ArthasWsWrapper(globalAgentInfo);
+            try {
+                w.createArthasWsClient();
+            } catch (Exception e) {
+                globalWrapper = null;
+                throw e;
+            }
+            globalWrapper = w;
         }
         return globalWrapper;
     }
@@ -139,6 +145,13 @@ public class ArthasWsWrapper {
         globalAgentInfo.setWsPort(port);
         // 重置 wrapper，下次 getWrapper 时会重新创建
         globalWrapper = null;
+    }
+
+    public static void close() {
+        if (globalWrapper != null && globalWrapper.wsClient != null) {
+            try { globalWrapper.wsClient.close(); } catch (Exception ignored) {}
+            globalWrapper = null;
+        }
     }
 
 }

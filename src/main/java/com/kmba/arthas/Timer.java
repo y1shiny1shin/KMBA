@@ -54,7 +54,6 @@ public class Timer {
             String regex = "\\@String\\[([0-9a-zA-Z.$_]+)\\]";
             Pattern pattern = Pattern.compile(regex);
 
-            System.out.println(resultAll);
             Matcher matcher = pattern.matcher(resultAll);
 
             while (matcher.find()) {

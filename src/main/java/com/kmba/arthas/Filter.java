@@ -45,7 +45,20 @@ public class Filter {
             String regex = "@String\\[(.*?):(.*?):(.*?)\\]";
             Pattern pattern = Pattern.compile(regex);
 
-            String resultAll = Util.getListResult(tomcatSiteCnt ,listFilterByVmtool);
+            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
+
+            List<String> result = new ArrayList<>();
+
+            for (int i = 0; i < tomcatSiteCnt; i++) {
+                String cmd = String.format(listFilterByVmtool, i ,i);
+
+                List<String> result0 = wrapper.runCmd(cmd);
+
+                for (String s: result0)
+                    if (!(s.isEmpty() || s==null))
+                        result.add(s);
+            }
+            String resultAll = String.join("" ,result);
 
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -61,7 +74,6 @@ public class Filter {
                 jsonArray.add(jsonObject);
             }
             logger.info("/filter/list: {}" ,jsonArray.toJSONString());
-            System.out.println(jsonArray.toJSONString());
             return jsonArray;
         }catch (Exception e){
             logger.error(e.getMessage());

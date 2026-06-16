@@ -19,11 +19,10 @@ public class OGNLUtils {
             String arthasHash = null;
 
             List<String> hashResult = wrapper.runCmd(getArthasClassLoaderHash);
-            System.out.println(hashResult);
+            logger.info("hashResult: {}" ,hashResult);
 
             if (hashResult.size() > 0) {
                 String result = hashResult.get(0);
-                System.out.println("setStrictModeClose: " + result);
 
                 Pattern pattern = Pattern.compile("com\\.taobao\\.arthas\\.agent\\.ArthasClassloader\\@([a-zA-Z0-9]{8})");
                 Matcher matcher = pattern.matcher(result);
@@ -36,7 +35,7 @@ public class OGNLUtils {
                 return false;
             } else {
                 String cmd = String.format(closeOGNLStrictMode, arthasHash);
-                logger.info("setStrictModeClose: "+wrapper.runCmd(cmd));
+                logger.info("setStrictModeClose: {}" ,wrapper.runCmd(cmd));
 
                 return true;
             }

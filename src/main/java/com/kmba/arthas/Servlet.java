@@ -68,10 +68,9 @@ public class Servlet {
                             }
                         }
                     }
-                    System.out.println(jsonArray);
                 }
             }
-            logger.info("/servlet/list: {}", jsonArray.toString());
+            logger.info("/servlet/list: {}", jsonArray);
             return jsonArray;
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -88,7 +87,7 @@ public class Servlet {
                 String cmd = String.format(unloadServletByVmtool, i ,urlPath);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/servlet/unload: " + result);
+                logger.info("/servlet/unload: {}" ,result);
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
                 }

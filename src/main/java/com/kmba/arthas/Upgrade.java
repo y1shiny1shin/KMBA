@@ -65,7 +65,7 @@ public class Upgrade {
     public String unload(@RequestParam String upgradeName){
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-            System.out.println(upgradeName);
+
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadUpgradeByVmtool, i ,upgradeName);
 

@@ -1,46 +1,52 @@
-# KMBA — Tomcat 内存马查杀工具
+# KMBA — Tomcat / SpringMVC 内存马查杀工具
 
-KMBA 是一个基于 Web 的 Java 内存马应急响应工具，用于检测、分析和清除 Apache Tomcat 服务器中的内存 webshell（内存马）。它使用 [Arthas](https://arthas.aliyun.com/) 作为诊断引擎，通过 OGNL 表达式和 `vmtool` 命令直接检查运行中的 JVM 内部状态，无需重启目标应用。
+KMBA 是一个 Java 内存马应急响应工具，支持 **Web 管理界面**和 **CLI 命令行**两种模式，用于检测、分析和清除 Apache Tomcat 及 SpringMVC 应用中的内存 webshell（内存马）。它使用 [Arthas](https://arthas.aliyun.com/) 作为诊断引擎，通过 OGNL 表达式和 `vmtool` 命令直接检查运行中的 JVM 内部状态，无需重启目标应用。
 ![img.png](img.png)
 
 ## 功能特性
 
-- **覆盖 10 种内存马类型** — Servlet、Filter、Listener、WebSocket、ProxyValve、Valve、Executor、Thread、Timer、Upgrade
+- **覆盖 12 种内存马类型** — Servlet、Filter、Listener、WebSocket、Valve、ProxyValve、Executor、Thread、Timer、Upgrade、SpringMVC Controller、SpringMVC Interceptor
+- **Web 管理界面** — 暗色主题 SPA，无 CDN 依赖，所有前端资源本地化
+- **CLI 命令行模式** — 支持 headless 环境、脚本批量和 SSH 远程场景，无需浏览器
 - **按需 JAD 反编译** — 直接从 JVM 中提取任意已加载类的 Java 源码并格式化展示
 - **关键字可疑扫描** — 可自定义规则引擎，标记包含恶意特征的类（如 `ProcessBuilder`、`getRuntime`、`javax.crypto.*` 等）
 - **多种卸载策略** — 针对不同类型提供温和（cancel/interrupt）和强制两种模式，附带风险说明
 - **本地 & 远程连接** — 通过 `jps` + 内置 `arthas-boot.jar` 连接本地 JVM，或通过 WebSocket 连接远程 Arthas 代理
-- **单页 Web 管理界面** — 暗色主题，无 CDN 依赖，所有前端资源本地化
 
 ## 支持的内存马类型
 
-| 模块       | 目标类 / 范围                                        | 检测方式                  |
-|------------|-----------------------------------------------------|--------------------------|
-| Servlet    | `StandardContext.servletMappings`                   | vmtool + OGNL 枚举        |
-| Filter     | `StandardContext.filterMaps` + `filterConfigs`      | vmtool + OGNL 枚举        |
-| Listener   | `StandardContext.applicationEventListenersList`     | vmtool + OGNL 枚举        |
-| WebSocket  | `WsServerContainer.configExactMatchMap`             | vmtool + OGNL 枚举        |
-| ProxyValve | `StandardPipeline` 的 first/basic 字段 (Java Proxy) | vmtool + 反射遍历          |
-| Valve      | `StandardContext.pipeline.valves`                   | vmtool + OGNL 枚举        |
-| Executor   | `NioEndpoint.executor`（被替换的执行器实例）           | vmtool + 类名比对          |
-| Thread     | 所有 `java.lang.Thread` 实例（按 target 类过滤）      | vmtool + 线程名匹配        |
-| Timer      | 所有 `java.util.TimerTask` 实例                     | vmtool + 类名过滤          |
-| Upgrade    | `AbstractHttp11Protocol.httpUpgradeProtocols`       | vmtool + OGNL 枚举        |
+| 模块                  | 目标类 / 范围                                                  | 检测方式                  |
+|-----------------------|--------------------------------------------------------------|--------------------------|
+| Servlet               | `StandardContext.servletMappings`                            | vmtool + OGNL 枚举        |
+| Filter                | `StandardContext.filterMaps` + `filterConfigs`               | vmtool + OGNL 枚举        |
+| Listener              | `StandardContext.applicationEventListenersList`              | vmtool + OGNL 枚举        |
+| WebSocket             | `WsServerContainer.configExactMatchMap`                      | vmtool + OGNL 枚举        |
+| Valve                 | `StandardContext.pipeline.valves`                            | vmtool + OGNL 枚举        |
+| ProxyValve            | `StandardPipeline` 的 first/basic 字段 (Java Proxy)          | vmtool + 反射遍历          |
+| Executor              | `NioEndpoint.executor`（被替换的执行器实例）                    | vmtool + 类名比对          |
+| Thread                | 所有 `java.lang.Thread` 实例（按 target 类过滤）               | vmtool + 线程名匹配        |
+| Timer                 | 所有 `java.util.TimerTask` 实例                              | vmtool + 类名过滤          |
+| Upgrade               | `AbstractHttp11Protocol.httpUpgradeProtocols`                | vmtool + OGNL 枚举        |
+| SpringMVC Controller  | `RequestMappingHandlerMapping.mappingRegistry`               | vmtool + OGNL 枚举        |
+| SpringMVC Interceptor | `RequestMappingHandlerMapping.adaptedInterceptors`           | vmtool + OGNL 枚举        |
 
 ## 架构
 
 ```
-浏览器 (SPA)
-    │  REST API (JSON)
-    ▼
-Spring Boot 2.6.13 (KMBA)  ──WebSocket──▶  Arthas Agent (目标 JVM)
-    │                                           │
-    ├── /arthas/connect        本地 attach       ├── vmtool / ognl
-    ├── /arthas/connectRemote  远程 WebSocket    ├── jad / sc
-    ├── /{模块}/list           枚举组件           └── dashboard / ...
-    ├── /{模块}/unload         卸载组件
-    ├── /jad/*                 反编译
-    └── /arthas/exec           执行原始 Arthas 命令
+                    ┌─── Web 模式 ───┐
+                    │  浏览器 (SPA)    │
+                    │  REST API       │
+                    └────────┬────────┘
+                             │
+┌──────────────┐      ┌──────┴───────┐      ┌─────────────────────┐
+│  用户输入      │────▶│  KMBA        │─────▶│  Arthas Agent       │
+│  (Web/CLI)    │      │  Spring Boot │ WS   │  (目标 JVM)          │
+└──────────────┘      └──────┬───────┘      └─────────────────────┘
+                             │                        │
+                    ┌────────┴────────┐      ┌───────┴────────┐
+                    │  CLI 模式        │      │  vmtool / ognl  │
+                    │  java -jar cli  │      │  jad / sc       │
+                    └─────────────────┘      └────────────────┘
 ```
 
 所有命令执行严格遵循**串行化**，防止 WebSocket 消息交错导致结果混乱。
@@ -51,18 +57,67 @@ Spring Boot 2.6.13 (KMBA)  ──WebSocket──▶  Arthas Agent (目标 JVM)
 
 - JDK 8+
 - Maven 3.6+
-- 目标 JVM 需要能够被 Arthas attach（本地连接时 KMBA 会自动处理）
+- 目标 JVM 需要能够被 Arthas attach
 
-### 构建与运行
+### 构建
 
 ```bash
 mvn clean package -DskipTests
+```
+
+### Web 模式
+
+```bash
 java -jar target/KMBA-0.1.jar
 ```
 
-启动后浏览器访问 `http://localhost:9099`。
+启动后浏览器访问 `http://localhost:9099`，通过界面连接目标 JVM 并进行操作。
 
-### 使用流程
+### CLI 模式
+
+适用于 headless 服务器、SSH 远程操作或脚本批量处理：
+
+```bash
+java -jar target/KMBA-0.1.jar cli <pid> <command>
+```
+
+**列出组件：**
+
+```bash
+# 列出指定类型
+java -jar KMBA.jar cli 54203 -l servlet
+java -jar KMBA.jar cli 54203 -l filter
+java -jar KMBA.jar cli 54203 -l smc        # SpringMVC Controller
+java -jar KMBA.jar cli 54203 -l smi        # SpringMVC Interceptor
+
+# 列出全部 12 种类型
+java -jar KMBA.jar cli 54203 -l all
+```
+
+**卸载组件：**
+
+```bash
+java -jar KMBA.jar cli 54203 -u servlet /evil
+java -jar KMBA.jar cli 54203 -u filter /evil
+java -jar KMBA.jar cli 54203 -u proxyValve first com.InjectValve
+java -jar KMBA.jar cli 54203 -u proxyValve basic com.InjectValve
+java -jar KMBA.jar cli 54203 -u thread myThread com.EvilTask
+java -jar KMBA.jar cli 54203 -u socket /ws com.MyWS
+```
+
+**反编译类：**
+
+```bash
+java -jar KMBA.jar cli 54203 -jad com.InjectServlet
+```
+
+**启用调试日志：**
+
+```bash
+java -jar KMBA.jar cli 54203 --log true -l all
+```
+
+### Web 模式使用流程
 
 1. 点击 **连接** 打开连接对话框
 2. 选择一个本地 JVM 进程（通过 `jps` 自动发现），或输入远程 Arthas WebSocket 地址
@@ -76,7 +131,7 @@ java -jar target/KMBA-0.1.jar
 
 ```
 src/main/java/com/kmba/
-├── KmbaApplication.java          # Spring Boot 启动入口
+├── KmbaApplication.java          # 启动入口（自动识别 Web / CLI 模式）
 ├── arthas/
 │   ├── ArthasController.java     # 连接管理、进程列表、命令执行
 │   ├── Servlet.java              # Servlet 型内存马检测/卸载
@@ -89,7 +144,12 @@ src/main/java/com/kmba/
 │   ├── Thread.java               # 恶意线程检测/卸载
 │   ├── Timer.java                # TimerTask 型检测/卸载
 │   ├── Upgrade.java              # HTTP Upgrade 型检测/卸载
+│   ├── SpringMvcController.java  # SpringMVC Controller 检测/卸载
+│   ├── SpringMvcInterceptor.java # SpringMVC Interceptor 检测/卸载
 │   └── JAD.java                  # 类反编译（jad/sc）
+├── cli/
+│   ├── CliHandler.java           # CLI 模式入口，参数解析与命令派发
+│   └── LogConfig.java            # CLI 模式日志控制
 ├── tunnel/
 │   └── ArthasWsWrapper.java      # WebSocket 封装，串行命令执行
 ├── Utils/

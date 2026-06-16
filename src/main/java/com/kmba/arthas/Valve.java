@@ -67,7 +67,6 @@ public class Valve {
     public String unload(@RequestParam String className) {
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-            System.out.println(className);
 
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadValveByVmtool, i , className);
