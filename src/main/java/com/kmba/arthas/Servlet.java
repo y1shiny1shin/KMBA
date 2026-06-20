@@ -31,7 +31,7 @@ import static com.kmba.Utils.Dict.tomcatSiteCnt;
 @RequestMapping("/servlet")
 public class Servlet {
 //    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].servletMappings";
-    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).servletClass),#key+\":\"+#tmpValue}'";
+    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet().class.getName),#key+\":\"+#tmpValue}'";
     String unloadServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].removeServletMapping(\"%s\")'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @RequestMapping("/list")

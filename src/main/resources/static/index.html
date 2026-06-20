@@ -208,11 +208,15 @@
         </div>
         <div class="mb">
             <div class="hint" id="jadHint" style="margin-bottom:10px"></div>
-            <div class="codeWrap">
+            <div class="codeWrap" id="jadCodeWrap">
                 <pre class="language-java"><code class="language-java" id="jadCode"></code></pre>
+            </div>
+            <div class="codeWrap" id="jadVmtoolWrap" style="display:none">
+                <pre><code id="jadVmtoolOut"></code></pre>
             </div>
         </div>
         <div class="mf">
+            <button class="btn ghost" id="btnJadVmtool">查看参数</button>
             <button class="btn ghost" id="btnJadCopy">复制源码</button>
             <button class="btn ghost" data-close="maskJad">关闭</button>
         </div>

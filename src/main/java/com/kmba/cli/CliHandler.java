@@ -21,139 +21,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.kmba.cli.CompHandler.*;
+
 /**
  * KMBA CLI 入口，解析参数并调用 arthas 包下已有控制器的方法
  */
 public class CliHandler {
-
-    // ──── 组件注册：只需在此数组中增删组件，list/unload/help 自动覆盖 ────
-    // 用抽象类实现方法，简化了一下代码
-    private static abstract class Comp {
-        final String name;
-        final String help;  // 帮助信息中该组件的一行说明
-
-        Comp(String name, String help) {
-            this.name = name;
-            this.help = help;
-        }
-
-        abstract JSONArray list();
-        abstract String unload(String target, String extra);
-    }
-
-    private static final Comp[] COMPS = {
-            new Comp("servlet",    "-u servlet <urlPath>") {
-                JSONArray list() {
-                    return new Servlet().list();
-                }
-                String unload(String target, String extra) {
-                    return new Servlet().unload(target);
-                }
-            },
-            new Comp("filter",     "-u filter <urlPattern>") {
-                JSONArray list() {
-                    return new Filter().list();
-                }
-                String unload(String target, String extra) {
-                    return new Filter().unload(target);
-                }
-            },
-            new Comp("listener",   "-u listener <className>") {
-                JSONArray list() {
-                    return new Listener().list();
-                }
-                String unload(String target, String extra) {
-                    return new Listener().unload(target);
-                }
-            },
-            new Comp("smc",        "-u smc <urlPath>") {
-                JSONArray list() {
-                    return new SpringMvcController().list();
-                }
-                String unload(String target, String extra) {
-                    return new SpringMvcController().unload(target);
-                }
-            },
-            new Comp("smi",        "-u smi <className>") {
-                JSONArray list() {
-                    return new SpringMvcInterceptor().list();
-                }
-                String unload(String target, String extra) {
-                    return new SpringMvcInterceptor().unload(target);
-                }
-            },
-            new Comp("valve",      "-u valve <className>") {
-                JSONArray list() {
-                    return new Valve().list();
-                }
-                String unload(String target, String extra) {
-                    return new Valve().unload(target);
-                }
-            },
-            new Comp("proxyValve", "-u proxyValve <first|basic> <className>") {
-                JSONArray list() {
-                    return new ProxyValve().list();
-                }
-                String unload(String target, String extra) {
-                    // 默认先处理first
-                    if ("basic".equals(target)) {
-                        return new ProxyValve().unloadBasic(extra);
-                    }
-                    return new ProxyValve().unloadFirst(extra);
-                }
-            },
-            new Comp("timer",      "-u timer <className>") {
-                JSONArray list() {
-                    return new Timer().list();
-                }
-                String unload(String target, String extra) {
-                    return new Timer().unload(target);
-                }
-            },
-            new Comp("thread",     "-u thread <threadName> <className>") {
-                JSONArray list() {
-                    return new com.kmba.arthas.Thread().list();
-                }
-                String unload(String target, String extra) {
-                    return new com.kmba.arthas.Thread().unload(target, extra);
-                }
-            },
-            new Comp("socket",     "-u socket <urlName> <className>") {
-                JSONArray list() {
-                    return new Socket().list();
-                }
-                String unload(String target, String extra) {
-                    return new Socket().unload(target, extra);
-                }
-            },
-            new Comp("executor",   "-u executor <className>") {
-                JSONArray list() {
-                    return new Executor().list();
-                }
-                String unload(String target, String extra) {
-                    return new Executor().unloadGently(target);
-                }
-            },
-            new Comp("upgrade",    "-u upgrade <upgradeName>") {
-                JSONArray list() {
-                    return new Upgrade().list();
-                }
-                String unload(String target, String extra) {
-                    return new Upgrade().unload(target);
-                }
-            },
-    };
-
-    // 按名称查找组件
-    private static Comp findComp(String name) {
-        for (Comp c : COMPS) {
-            if (c.name.equals(name)) return c;
-        }
-        return null;
-    }
-
     // ──── 主入口 ────
-
     /**
      * CLI 主入口，args 为去掉 "cli" 之后的部分
      */
@@ -217,7 +91,7 @@ public class CliHandler {
             return;
         }
 
-        // 执行命令
+        // 执行命令，执行指定参数
         try {
             String op = args[1];
             if ("-l".equals(op)) {
@@ -239,6 +113,12 @@ public class CliHandler {
                     return;
                 }
                 handleJad(args[2]);
+            } else if ("-vmtool".equals(op)) {
+                if (args.length < 3) {
+                    System.out.println("用法: cli <pid> -vmtool <className> [classLoaderHash]");
+                    return;
+                }
+                handleVmtool(args);
             } else {
                 System.out.println(buildHelp());
             }
@@ -248,136 +128,9 @@ public class CliHandler {
         }
     }
 
-    // ──── list ────
-    private static void handleList(String type) {
-        if ("all".equals(type)) {
-            for (Comp c : COMPS) {
-                listAndPrint(c);
-            }
-            return;
-        }
-        Comp c = findComp(type);
-        if (c == null) {
-            System.out.println(buildHelp());
-            return;
-        }
-        listAndPrint(c);
-    }
-
-    private static void listAndPrint(Comp c) {
-        JSONArray arr = c.list();
-        int count = 0;
-        if (arr != null && !arr.isEmpty()) {
-            count = arr.size();
-        }
-
-        System.out.println();
-        System.out.println("  " + c.name + " (" + count + ")");
-        System.out.println("  ------------------------------------------------------------");
-
-        if (count == 0) {
-            System.out.println("  (empty)");
-            return;
-        }
-
-        for (int i = 0; i < arr.size(); i++) {
-            Object item = arr.get(i);
-            if (item instanceof JSONObject) {
-                printJsonItem((JSONObject) item);
-            } else {
-                System.out.println("  " + item);
-            }
-        }
-    }
-
-    private static void printJsonItem(JSONObject obj) {
-        // filter：三列
-        if (obj.containsKey("urlPattern")) {
-            System.out.printf("  %-28s %-28s %s\n",
-                    obj.getString("urlPattern"),
-                    obj.getString("filterName"),
-                    obj.getString("className"));
-            return;
-        }
-        // proxyValve：first / basic
-        if (obj.containsKey("first")) {
-            System.out.println("  first  -> " + obj.getString("first"));
-            return;
-        }
-        if (obj.containsKey("basic")) {
-            System.out.println("  basic  -> " + obj.getString("basic"));
-            return;
-        }
-        // 其他：单键值对 {标识: 类名}
-        for (String k : obj.keySet()) {
-            System.out.printf("  %-50s %s\n", k, obj.getString(k));
-        }
-    }
-
-    // ──── unload ────
-
-    private static void handleUnload(String type, String target, String extra) {
-        Comp c = findComp(type);
-        if (c == null) {
-            System.out.println(buildHelp());
-            return;
-        }
-        // proxyValve / thread / socket 需要额外参数校验
-        if (extra == null) {
-            if ("proxyValve".equals(type) || "thread".equals(type) || "socket".equals(type)) {
-                System.out.println("用法: cli <pid> " + c.help);
-                return;
-            }
-        }
-        String result = c.unload(target, extra);
-        System.out.println(result);
-    }
-
-    // ──── jad ────
-
-    /**
-     * 完整 JAD 流程：check -> jad 或 hashcode -> jad(classInfo, hash)
-     */
-    private static void handleJad(String className) {
-        JAD jad = new JAD();
-
-        String checkResult = jad.check(className);
-
-        if ("dont".equals(checkResult)) {
-            System.out.println("[!] 类不存在: " + className);
-            return;
-        }
-
-        if ("yes".equals(checkResult)) {
-            System.out.println(jad.jad(className));
-            return;
-        }
-
-        System.out.println("[*] 类 " + className + " 存在多个版本，正在枚举...");
-
-        JSONArray hashes = jad.hashcode(className);
-        if (hashes == null || hashes.isEmpty()) {
-            System.out.println("[!] 未能获取 ClassLoaderHash");
-            return;
-        }
-
-        for (int i = 0; i < hashes.size(); i++) {
-            JSONObject info = hashes.getJSONObject(i);
-            String classInfo = info.getString("class-info");
-            String hash = info.getString("classLoaderHash");
-
-            System.out.println();
-            System.out.println("  ---- ClassLoaderHash: " + hash + " (" + classInfo + ") ----");
-            System.out.println();
-            System.out.println(jad.jad(classInfo, hash));
-        }
-    }
-
-    // ──── 帮助 ────
-
     public static final String HELP = buildHelp();
 
-    private static String buildHelp() {
+    public static String buildHelp() {
         StringBuilder sb = new StringBuilder();
         sb.append("KMBA - Java 内存马查杀工具\n");
         sb.append("\n");
@@ -392,6 +145,8 @@ public class CliHandler {
         sb.append("  -u  <组件> <目标> [额外参数]\n");
         sb.append("                    卸载/移除恶意组件\n");
         sb.append("  -jad <类名>       反编译并显示类源码\n");
+        sb.append("  -vmtool <类名> [classLoaderHash]\n");
+        sb.append("                    获取类在内存中的实例参数\n");
         sb.append("\n");
         sb.append("选项:\n");
         sb.append("  --log true        启用调试日志（CLI 模式默认关闭）\n");
@@ -415,6 +170,8 @@ public class CliHandler {
         sb.append("  java -jar KMBA.jar cli 54203 -u thread myThread com.EvilTask\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u socket /ws com.MyEndpoint\n");
         sb.append("  java -jar KMBA.jar cli 54203 -jad com.InjectServlet\n");
+        sb.append("  java -jar KMBA.jar cli 54203 -vmtool javax.servlet.Servlet\n");
+        sb.append("  java -jar KMBA.jar cli 54203 -vmtool javax.servlet.Servlet 439f5b3d\n");
         sb.append("  java -jar KMBA.jar cli 54203 --log true -l all\n");
         return sb.toString();
     }

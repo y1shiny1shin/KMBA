@@ -53,7 +53,8 @@ const state = {
     keywords: defaults.keywords.slice(),
     choiceResolver: null,
     lastProcList: [],
-    lastJadCache: new Map()    // key: className|hash -> src
+    lastJadCache: new Map(),    // key: className|hash -> src
+    jadContext: null            // { className, classLoaderHash } of current JAD view
 };
 
 const modules = [
@@ -403,7 +404,10 @@ function setLoadingUI(on, ctx){
 async function jadFetch(className){
     // cache by className (unique path will still be disambiguated later)
     const ck = 'jad|' + className;
-    if (state.lastJadCache.has(ck)) return state.lastJadCache.get(ck);
+    if (state.lastJadCache.has(ck)){
+        state.jadContext = { className: className, classLoaderHash: null };
+        return state.lastJadCache.get(ck);
+    }
 
     const checkId = dock.push('加载源码', 'checking: ' + className, 'busy');
     const check = (await apiText('/jad/check?className=' + encodeURIComponent(className))).trim();
@@ -417,6 +421,7 @@ async function jadFetch(className){
         dock.update(checkId, { msg: 'jad: ' + className + ' ...' });
         const src = await apiText('/jad/jad?className=' + encodeURIComponent(className));
         state.lastJadCache.set(ck, src);
+        state.jadContext = { className: className, classLoaderHash: null };
         dock.update(checkId, { level:'ok', time: nowTime(), msg: 'jad loaded: ' + className });
         return src;
     }
@@ -424,8 +429,6 @@ async function jadFetch(className){
     if (check === 'no'){
         dock.update(checkId, { level:'warn', time: nowTime(), msg: 'duplicate class, need classLoaderHashCode: ' + className });
         const list = await apiJson('/jad/hashcode?className=' + encodeURIComponent(className));
-        // IMPORTANT: backend may return more than the exact className (e.g. related classes).
-        // Show all entries and allow user to pick both class-info and classLoaderHash.
         const opts = (Array.isArray(list) ? list : []).filter(x =>
             x && typeof x === 'object' && x['class-info'] && x.classLoaderHash
         );
@@ -456,17 +459,29 @@ async function jadFetch(className){
         const hk = 'jad|' + pickedClass + '|' + pickedHash;
         if (state.lastJadCache.has(hk)){
             dock.update(checkId, { level:'ok', time: nowTime(), msg: 'jad cached: ' + pickedClass + ' -c ' + pickedHash });
+            state.jadContext = { className: pickedClass, classLoaderHash: pickedHash };
             return state.lastJadCache.get(hk);
         }
         dock.update(checkId, { msg: 'jadHash: ' + pickedClass + ' -c ' + pickedHash + ' ...' });
         const src = await apiText('/jad/jadHash?className=' + encodeURIComponent(pickedClass) + '&classLoaderHashCode=' + encodeURIComponent(pickedHash));
         state.lastJadCache.set(hk, src);
+        state.jadContext = { className: pickedClass, classLoaderHash: pickedHash };
         dock.update(checkId, { level:'ok', time: nowTime(), msg: 'jad loaded: ' + pickedClass + ' -c ' + pickedHash });
         return src;
     }
 
     dock.update(checkId, { level:'err', time: nowTime(), msg: 'jad check failed: ' + check });
     return null;
+}
+
+function resetJadVmtoolUI(){
+    $$('#jadCodeWrap').style.display = '';
+    $$('#jadVmtoolWrap').style.display = 'none';
+    const btn = $$('#btnJadVmtool');
+    btn.textContent = '查看参数';
+    btn.dataset.mode = '';
+    btn.disabled = false;
+    $$('#btnJadCopy').style.display = '';
 }
 
 function renderCode(src){
@@ -594,6 +609,8 @@ const ui = {
         $$('#jadSub').textContent = cn;
         $$('#jadHint').textContent = '加载中...';
         $$('#jadCode').textContent = '';
+        state.jadContext = null;
+        resetJadVmtoolUI();
         openMask('maskJad');
 
         const src = await jadFetch(cn);
@@ -944,6 +961,89 @@ $$('#btnJadCopy').addEventListener('click', async () => {
     } catch {
         dock.push('复制源码', '复制失败（浏览器可能限制 clipboard）', 'warn');
     }
+});
+
+$$('#btnJadVmtool').addEventListener('click', async () => {
+    const ctx = state.jadContext;
+    if (!ctx || !ctx.className){
+        dock.push('查看参数', '缺少类名上下文，无法查询', 'warn');
+        return;
+    }
+
+    const vmtoolWrap = $$('#jadVmtoolWrap');
+    const codeWrap = $$('#jadCodeWrap');
+    const btn = $$('#btnJadVmtool');
+    const copyBtn = $$('#btnJadCopy');
+
+    // 切换回源码
+    if (btn.dataset.mode === 'vmtool'){
+        vmtoolWrap.style.display = 'none';
+        codeWrap.style.display = '';
+        btn.textContent = '查看参数';
+        btn.dataset.mode = '';
+        copyBtn.style.display = '';
+        $$('#jadTitle').textContent = '源码';
+        $$('#jadHint').textContent = '已加载: ' + ctx.className;
+        return;
+    }
+
+    // 切换到 vmtool
+    btn.textContent = '…';
+    btn.disabled = true;
+
+    const params = new URLSearchParams();
+    params.set('className', ctx.className);
+    if (ctx.classLoaderHash) params.set('classLoaderHash', ctx.classLoaderHash);
+
+    const op = dock.push('查看参数', 'vmtool: ' + ctx.className, 'busy');
+    const json = await apiJson('/vmtool/get?' + params.toString());
+
+    btn.disabled = false;
+
+    let text = '';
+    if (!json || !json.type){
+        dock.update(op, { level:'err', time: nowTime(), msg: 'vmtool 返回异常' });
+        btn.textContent = '查看参数';
+        return;
+    }
+
+    if (json.type === 'error'){
+        dock.update(op, { level:'err', time: nowTime(), msg: json.message || 'vmtool error' });
+        btn.textContent = '查看参数';
+        return;
+    }
+
+    if (json.type === '404' || json.type === 'not_found'){
+        dock.update(op, { level:'warn', time: nowTime(), msg: 'class not found: ' + ctx.className });
+        btn.textContent = '查看参数';
+        return;
+    }
+
+    if (json.type === 'single'){
+        text = (json.data || '') + '\n\n// classLoaderHash: ' + (json.classLoaderHash || '');
+        dock.update(op, { level:'ok', time: nowTime(), msg: 'vmtool loaded: ' + ctx.className });
+    } else if (json.type === 'multi'){
+        const results = json.results || [];
+        const parts = [];
+        for (let i = 0; i < results.length; i++){
+            const r = results[i];
+            parts.push(
+                '// ── ' + (r.classLoaderHash || '') + '  ' + (r.classInfo || '') + ' ──\n' +
+                (r.data || '')
+            );
+        }
+        text = parts.join('\n\n');
+        dock.update(op, { level:'ok', time: nowTime(), msg: 'vmtool loaded: ' + results.length + ' instances' });
+    }
+
+    $$('#jadVmtoolOut').textContent = text;
+    codeWrap.style.display = 'none';
+    vmtoolWrap.style.display = '';
+    btn.textContent = '查看源码';
+    btn.dataset.mode = 'vmtool';
+    copyBtn.style.display = 'none';
+    $$('#jadTitle').textContent = '参数';
+    $$('#jadHint').textContent = 'vmtool: ' + ctx.className + (ctx.classLoaderHash ? ' -c ' + ctx.classLoaderHash : '');
 });
 
 $$('#btnDockClear').addEventListener('click', () => dock.clear());
