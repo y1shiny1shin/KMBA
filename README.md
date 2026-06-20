@@ -180,15 +180,17 @@ src/main/resources/
 
 本工具仅限**授权的安全运维和应急响应**场景使用。请仅在您拥有或被明确授权分析的系统中使用。作者不承担任何滥用导致的后果。
 
-## 参考文章
+## 感谢
 
 - [Arthas — 阿里巴巴 Java 诊断工具](https://arthas.aliyun.com/)
-- [Java 内存马系列 — su18.org](https://su18.org/post/memory-shell/)
-- [Tomcat Filter 型内存马 — drun1baby](https://drun1baby.top/2022/08/22/Java内存马系列-03-Tomcat-之-Filter-型内存马/)
-- [Tomcat Valve 型内存马 — y4er.com](https://y4er.com/posts/tomcat-upgrade-memshell/)
-- [Tomcat Listener 型内存马 — chenlvtang](https://chenlvtang.top/2022/08/03/Tomcat之Listener内存马/)
-- [Tomcat Upgrade 内存马 — FreeBuf](https://www.freebuf.com/articles/vuls/345119.html)
-- [MemShellParty — ReaJason](https://github.com/ReaJason/MemShellParty)
+- [su18](https://su18.org/)
+- [drun1baby](https://drun1baby.top/)
+- [y4er](https://y4er.com/)
+- [chenlvtang](https://chenlvtang.top/)
+- [FreeBuf](https://www.freebuf.com/)
+- [ReaJason](https://github.com/)
+- [Linux.do](https://linux.do/)
+**排名不分先后，感谢各位前辈**
 
 ## 协议
 
