@@ -24,14 +24,15 @@ import static com.kmba.Utils.Dict.tomcatSiteCnt;
 
 /**
  * TODO
- * 优化一下Servlet-list的逻辑
+ * ~~优化一下Servlet-list的逻辑~~
+ * 还要优化:(
  */
 
 @RestController
 @RequestMapping("/servlet")
 public class Servlet {
-//    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].servletMappings";
-    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet().class.getName),#key+\":\"+#tmpValue}'";
+//    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[].servletMappings";
+    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet(),((#tmpValue==null)?(#outValue=#maps.get(#key)):(#outValue=#tmpValue.class.getName()))),#key+\":\"+#outValue}'";
     String unloadServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].removeServletMapping(\"%s\")'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @RequestMapping("/list")
