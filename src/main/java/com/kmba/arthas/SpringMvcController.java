@@ -43,7 +43,6 @@ public class SpringMvcController {
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
-            List<String> result = new ArrayList<>();
             wrapper.runCmd(Strict_Option+ENTER);
 
             OGNLUtils.setStrictModeClose();

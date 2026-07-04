@@ -32,6 +32,9 @@ import static com.kmba.Utils.Dict.tomcatSiteCnt;
 @RequestMapping("/servlet")
 public class Servlet {
 //    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[].servletMappings";
+    /**
+     * list处，增加了null值的处理，结合前两版的优点
+     */
     String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet(),((#tmpValue==null)?(#outValue=#maps.get(#key)):(#outValue=#tmpValue.class.getName()))),#key+\":\"+#outValue}'";
     String unloadServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].removeServletMapping(\"%s\")'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());

@@ -19,6 +19,7 @@ public class Util {
     public static String getSocketCntExpress = "vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express 'instances.length'";
     public static String getEndpointCntExpress = "vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express 'instances.length'";
     public static String getSpringCntExpress = "vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances.length'";
+    public static String getSpringFluxCntExpress = "vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances.length'";
 
     private static final Pattern INTEGER_PATTERN =
             Pattern.compile("@Integer\\[(\\d+)]");
@@ -68,6 +69,10 @@ public class Util {
 
     public static int getSpringCnt() {
         return executeCountCommand(getSpringCntExpress, "SpringCnt");
+    }
+
+    public static int getSpringFluxCnt() {
+        return executeCountCommand(getSpringFluxCntExpress ,"SpringFluxCnt");
     }
 
 
