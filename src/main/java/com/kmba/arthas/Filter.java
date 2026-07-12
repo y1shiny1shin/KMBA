@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.kmba.Utils.Dict.tomcatSiteCnt;
+import static com.kmba.Utils.Dict.getTomcatSiteCnt;
 
 /**
  * https://su18.org/post/memory-shell/#filter-%E5%86%85%E5%AD%98%E9%A9%AC
@@ -44,11 +44,12 @@ public class Filter {
 //]
             String regex = "@String\\[(.*?):(.*?):(.*?)\\]";
             Pattern pattern = Pattern.compile(regex);
+            
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
             List<String> result = new ArrayList<>();
-
+            int tomcatSiteCnt = getTomcatSiteCnt();
             for (int i = 0; i < tomcatSiteCnt; i++) {
                 String cmd = String.format(listFilterByVmtool, i ,i);
 
@@ -85,6 +86,7 @@ public class Filter {
     public String unload(@RequestParam String URLPattern){
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
+            int tomcatSiteCnt = getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadFilterByVmtool , i , URLPattern);
                 logger.info("/filter/unload: {}" ,wrapper.runCmd(cmd));

@@ -42,6 +42,11 @@ public class ArthasController {
             "libArthasJniLibrary-aarch64.so",
             "libArthasJniLibrary.dylib"
     };
+    private static final String[] EMBEDDED_ASYNC_PROFILER = {
+            "libasyncProfiler-linux-x64.so",
+            "libasyncProfiler-linux-arm64.so",
+            "libasyncProfiler-mac.dylib"
+    };
     private static volatile String cachedArthasBootPath;
     private static volatile String cachedArthasHome;
     private static volatile Process localArthasProcess;
@@ -444,6 +449,13 @@ public class ArthasController {
             Files.createDirectories(libDir);
             for (String name : EMBEDDED_ARTHAS_LIB) {
                 copyResource("/arthas/lib/" + name, libDir.resolve(name));
+            }
+
+            // 解压 async-profiler/ 下的 native 库
+            Path profilerDir = homeDir.resolve("async-profiler");
+            Files.createDirectories(profilerDir);
+            for (String name : EMBEDDED_ASYNC_PROFILER) {
+                copyResource("/arthas/async-profiler/" + name, profilerDir.resolve(name));
             }
 
             cachedArthasHome = homeDir.toAbsolutePath().toString();

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.kmba.Utils.Dict.tomcatSiteCnt;
+import static com.kmba.Utils.Dict.getTomcatSiteCnt;
 
 
 /**
@@ -38,7 +38,7 @@ public class Listener {
 
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
+            int tomcatSiteCnt = getTomcatSiteCnt();
             for (int i = 0; i < tomcatSiteCnt; i++) {
                 String listListenerByVmtool0 = String.format(listListenerByVmtool, i);
 
@@ -104,7 +104,7 @@ public class Listener {
         try {
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
+            int tomcatSiteCnt = getTomcatSiteCnt();
             for (int i=0; i<tomcatSiteCnt; i++) {
                 String cmd = String.format(unloadListenerByVmtool ,i ,className);
                 List<String> result = wrapper.runCmd(cmd);

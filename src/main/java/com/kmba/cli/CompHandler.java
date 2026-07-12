@@ -49,6 +49,14 @@ public class CompHandler {
                     return new SpringMvcInterceptor().unload(target);
                 }
             },
+            new Comp("sfwf",       "-u sfwf <className>") {
+                JSONArray list() {
+                    return new SpringFluxWebFilter().list();
+                }
+                String unload(String target, String extra) {
+                    return new SpringFluxWebFilter().unload(target);
+                }
+            },
             new Comp("valve",      "-u valve <className>") {
                 JSONArray list() {
                     return new Valve().list();

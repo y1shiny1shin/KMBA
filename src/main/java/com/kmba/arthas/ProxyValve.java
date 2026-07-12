@@ -3,6 +3,7 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kmba.Utils.Dict;
 import com.kmba.Utils.OGNLUtils;
 import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
@@ -46,7 +47,6 @@ public class ProxyValve {
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
-            List<String> result = new ArrayList<>();
             wrapper.runCmd(Strict_Option+ENTER);
 
             OGNLUtils.setStrictModeClose();
@@ -63,7 +63,7 @@ public class ProxyValve {
             String basicRegex = "@String\\[basic\\:([0-9a-zA-Z.$_]+)\\]";
             Pattern basicPattern = Pattern.compile(basicRegex);
 
-            String resultAll = Util.getListResult(tomcatSiteCnt ,getFirstAndBasicByVmtool);
+            String resultAll = Util.getListResult(Dict.getTomcatSiteCnt() ,getFirstAndBasicByVmtool);
 
             Matcher firstMatcher = firstPattern.matcher(resultAll);
             Matcher basicMatcher = basicPattern.matcher(resultAll);
@@ -86,7 +86,7 @@ public class ProxyValve {
 
             }
 
-            logger.info("/proxyValve/list: "+jsonArray.toString());
+            logger.info("/proxyValve/list: {}" ,jsonArray);
 
             return jsonArray;
         } catch (Exception e) {
@@ -104,9 +104,10 @@ public class ProxyValve {
 
             OGNLUtils.setStrictModeClose();
 
+            int tomcatSiteCnt = Dict.getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(clearFirstByVmtool, i , className);
-                logger.info("/proxyValve/unloadFirst: "+wrapper.runCmd(cmd));
+                logger.info("/proxyValve/unloadFirst: {}" ,wrapper.runCmd(cmd));
             }
             return "success";
         } catch (Exception e){
@@ -123,10 +124,10 @@ public class ProxyValve {
             wrapper.runCmd(Unsafe_Option+ENTER);
 
             OGNLUtils.setStrictModeClose();
-
+            int tomcatSiteCnt = Dict.getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(clearBasicByVmtool, i , className);
-                logger.info("/proxyValve/unloadBasic: "+wrapper.runCmd(cmd));
+                logger.info("/proxyValve/unloadBasic: {}" ,wrapper.runCmd(cmd));
             }
             return "success";
         } catch (Exception e){
@@ -141,7 +142,7 @@ public class ProxyValve {
 //            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 //
 //            List<String> result = new ArrayList<>();
-//            for (int i=0;i<tomcatSiteCnt;i++){
+//            for (int i=0;i<Dict.getTomcatSiteCnt();i++){
 //                String cmd = String.format(checkBasicByVmtool ,i);
 //                result = wrapper.runCmd(cmd);
 //                // 如果basic被修改，返回yes，那么前端提示立即重启

@@ -70,7 +70,8 @@ const modules = [
     { id:'timer', title:'Timer', desc:'className', list:'/timer/list' },
     { id:'upgrade', title:'Upgrade', desc:'upgradeName -> className', list:'/upgrade/list' },
     { id:'smc', title:'SpringMVC Controller', desc:'urlPath -> className', list:'/SMC/list' },
-    { id:'smi', title:'SpringMVC Interceptor', desc:'className', list:'/SMI/list' }
+    { id:'smi', title:'SpringMVC Interceptor', desc:'className', list:'/SMI/list' },
+    { id:'sfwf', title:'SpringFlux WebFilter', desc:'filterName -> className', list:'/SFWF/list' }
 ];
 
 function signature(moduleId, row){
@@ -734,6 +735,7 @@ const ui = {
         if (moduleId === 'upgrade'){ qs.set('upgradeName', row.key || ''); return { url:'/upgrade/unload', qs }; }
         if (moduleId === 'smc'){ qs.set('urlPath', row.key || ''); return { url:'/SMC/unload', qs }; }
         if (moduleId === 'smi'){ qs.set('className', row.className || ''); return { url:'/SMI/unload', qs }; }
+        if (moduleId === 'sfwf'){ qs.set('className', row.className || ''); return { url:'/SFWF/unload', qs }; }
         return { url:'', qs };
     },
 

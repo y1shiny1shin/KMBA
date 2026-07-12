@@ -28,7 +28,7 @@ public class ArthasWsClient extends WebSocketClient {
 
     @Override
     public void onMessage(String message) {
-        if (message.trim().isEmpty() || message == null) {
+        if (message == null || message.trim().isEmpty()) {
             return;
         }
 

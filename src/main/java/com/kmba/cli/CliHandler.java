@@ -75,10 +75,12 @@ public class CliHandler {
         System.out.println("[+] 已连接");
 
         // 预热 WebSocket
+        boolean warmed = false;
         Exception lastEx = null;
         for (int retry = 0; retry < 3; retry++) {
             try {
                 ArthasWsWrapper.getWrapper().runCmd("help");
+                warmed = true;
                 break;
             } catch (Exception e) {
                 lastEx = e;
@@ -86,8 +88,8 @@ public class CliHandler {
                 java.lang.Thread.sleep(1000);
             }
         }
-        if (lastEx != null) {
-            System.err.println("[!] 预热失败: " + lastEx.getMessage());
+        if (!warmed) {
+            System.err.println("[!] 预热失败: " + (lastEx != null ? lastEx.getMessage() : "unknown"));
             return;
         }
 
@@ -141,7 +143,7 @@ public class CliHandler {
         sb.append("\n");
         sb.append("命令:\n");
         sb.append("  -l  <component>   列出指定类型的组件\n");
-        sb.append("  -l  all           列出全部 12 种组件\n");
+        sb.append("  -l  all           列出全部 13 种组件\n");
         sb.append("  -u  <组件> <目标> [额外参数]\n");
         sb.append("                    卸载/移除恶意组件\n");
         sb.append("  -jad <类名>       反编译并显示类源码\n");

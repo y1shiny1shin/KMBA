@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.kmba.Utils.Dict.tomcatSiteCnt;
+import static com.kmba.Utils.Dict.getTomcatSiteCnt;
 
 /**
  * 参考文章，感恩的心感谢有你
@@ -44,7 +44,7 @@ public class Servlet {
         try {
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
+            int tomcatSiteCnt = getTomcatSiteCnt();
             for (int i = 0; i < tomcatSiteCnt; i++) {
                 String listServletByVmtool0 = String.format(listServletByVmtool, i);
 
@@ -86,7 +86,7 @@ public class Servlet {
     public String unload(@RequestParam String urlPath){
         try {
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
+            int tomcatSiteCnt = getTomcatSiteCnt();
             for (int i = 0; i < tomcatSiteCnt; i++) {
                 String cmd = String.format(unloadServletByVmtool, i ,urlPath);
 

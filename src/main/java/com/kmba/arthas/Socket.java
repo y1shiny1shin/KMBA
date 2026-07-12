@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.kmba.Utils.Dict.tomcatSiteCnt;
 
 
 @RestController
@@ -70,7 +69,7 @@ public class Socket {
             for (int i = 0; i < socketCnt; i++) {
                 String cmd = String.format(unloadSocketByVmtool, i, urlName , className ,urlName);
 
-                logger.info("/socket/unload: "+wrapper.runCmd(cmd));
+                logger.info("/socket/unload: {}" ,wrapper.runCmd(cmd));
             }
             return "success";
         } catch (Exception e){

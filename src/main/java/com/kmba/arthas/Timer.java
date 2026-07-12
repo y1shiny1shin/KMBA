@@ -46,7 +46,7 @@ public class Timer {
 //                }
 //            }
             List<String> result0 = wrapper.runCmd(listTimerByVmtool);
-            for (String s:result0) if (!(s.isEmpty() || s == null)) result.add(s);
+            for (String s:result0) if (!(s == null || s.isEmpty())) result.add(s);
 
             String resultAll = String.join("" , result);
 
@@ -59,7 +59,7 @@ public class Timer {
             while (matcher.find()) {
                 if (matcher.group(1) != null) jsonArray.add(matcher.group(1));
             }
-            logger.info("/timer/list: "+jsonArray.toString());
+            logger.info("/timer/list: {}" ,jsonArray);
 
             return jsonArray;
 
@@ -78,7 +78,7 @@ public class Timer {
             for (int i=0; i<timerCnt; i++){
                 String cmd = String.format(unloadTimerByVmtoolGently, i ,className);
 
-                logger.info("/timer/list: "+wrapper.runCmd(cmd));
+                logger.info("/timer/unload: {}" ,wrapper.runCmd(cmd));
             }
             return "success";
         } catch (Exception e){

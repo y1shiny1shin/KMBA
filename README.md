@@ -5,7 +5,7 @@ KMBA 是一个 Java 内存马应急响应工具，支持 **Web 管理界面**和
 
 ## 功能特性
 
-- **覆盖 12 种内存马类型** — Servlet、Filter、Listener、WebSocket、Valve、ProxyValve、Executor、Thread、Timer、Upgrade、SpringMVC Controller、SpringMVC Interceptor
+- **覆盖 13 种内存马类型** — Servlet、Filter、Listener、WebSocket、Valve、ProxyValve、Executor、Thread、Timer、Upgrade、SpringMVC Controller、SpringMVC Interceptor、SpringFlux WebFilter
 - **Web 管理界面** — 暗色主题 SPA，无 CDN 依赖，所有前端资源本地化
 - **CLI 命令行模式** — 支持 headless 环境、脚本批量和 SSH 远程场景，无需浏览器
 - **按需 JAD 反编译** — 直接从 JVM 中提取任意已加载类的 Java 源码并格式化展示
@@ -29,6 +29,7 @@ KMBA 是一个 Java 内存马应急响应工具，支持 **Web 管理界面**和
 | Upgrade               | `AbstractHttp11Protocol.httpUpgradeProtocols`                | vmtool + OGNL 枚举        |
 | SpringMVC Controller  | `RequestMappingHandlerMapping.mappingRegistry`               | vmtool + OGNL 枚举        |
 | SpringMVC Interceptor | `RequestMappingHandlerMapping.adaptedInterceptors`           | vmtool + OGNL 枚举        |
+| SpringFlux WebFilter  | `FilteringWebHandler.chain.allFilters`                      | vmtool + OGNL 枚举        |
 
 ## 架构
 

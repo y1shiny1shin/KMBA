@@ -88,7 +88,7 @@ public class Util {
             List<String> result0 = wrapper.runCmd(cmd);
 
             for (String s: result0)
-                if (!(s.isEmpty() || s==null))
+                if (!(s==null || s.isEmpty()))
                     result.add(s);
         }
 

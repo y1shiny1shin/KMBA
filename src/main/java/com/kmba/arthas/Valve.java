@@ -2,6 +2,7 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kmba.Utils.Dict;
 import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
@@ -40,7 +41,7 @@ public class Valve {
         try {
             JSONArray jsonArray = new JSONArray();
 
-            String resultAll = Util.getListResult(tomcatSiteCnt ,listValveByVmtool);
+            String resultAll = Util.getListResult(Dict.getTomcatSiteCnt() ,listValveByVmtool);
 
             String regex = "\\[([0-9a-zA-Z.$_]+)\\[";
             Pattern pattern = Pattern.compile(regex);
@@ -67,10 +68,10 @@ public class Valve {
     public String unload(@RequestParam String className) {
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
+            int tomcatSiteCnt = Dict.getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadValveByVmtool, i , className);
-                logger.info("/valve/unload: "+wrapper.runCmd(cmd));
+                logger.info("/valve/unload: {}" ,wrapper.runCmd(cmd));
             }
             return "success";
         } catch (Exception e){
