@@ -2,6 +2,6 @@
 已做：解决tools.jar问题 // 要attach就必须要有tools.jar，jre中不存在tools.jar，且不同版本不同平台的tools.jar存在区别
 已做：更新SpringMVC-interceptor，SpringMVC-Controller内存
 已做：Servlet的还有待优化 // 优化之后处理null情况更灵活
-start.bat 等启动脚本待优化
-需要完整优化Arthas启动逻辑，防止联网更新导致启动失败（出现严重问题，arthas-boot不是完整包，麻蛋）
-排查nullpointer报错(初步估计是Arthas启动失败，导致attach失败导致返回结果失败)
+已做：start.bat 等启动脚本待优化
+已做：需要完整优化Arthas启动逻辑，防止联网更新导致启动失败（出现严重问题，arthas-boot不是完整包，麻蛋）
+已做：排查nullpointer报错：连接远程通信失败，但是仍然进入了后续逻辑，故而导致了nullpointer

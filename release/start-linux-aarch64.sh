@@ -20,9 +20,14 @@ else
     JAVA="java"
 fi
 
-echo "Starting KMBA..."
-echo "Access: http://localhost:9099"
-echo "Press Ctrl+C to stop."
-echo ""
-
-exec "$JAVA" -jar "$JAR"
+if [ $# -gt 0 ]; then
+    # CLI 模式
+    exec "$JAVA" -jar "$JAR" "$@"
+else
+    # Web 模式
+    echo "Starting KMBA (Web)..."
+    echo "Access: http://localhost:9099"
+    echo "Press Ctrl+C to stop."
+    echo ""
+    exec "$JAVA" -jar "$JAR"
+fi

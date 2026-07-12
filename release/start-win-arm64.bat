@@ -23,7 +23,15 @@ if exist "%JDK_DIR%\bin\java.exe" (
     set "JAVA=java"
 )
 
-echo Starting KMBA...
+REM 带参数 → CLI 模式，透传所有参数
+if not "%~1"=="" (
+    "%JAVA%" -jar "%JAR%" %*
+    pause
+    exit /b
+)
+
+REM 无参数 → Web 模式
+echo Starting KMBA (Web)...
 echo Access: http://localhost:9099
 echo Press Ctrl+C to stop.
 echo.

@@ -32,7 +32,18 @@ import java.util.List;
 public class ArthasController {
     private static final Logger logger = LoggerFactory.getLogger(ArthasController.class);
     private static final String EMBEDDED_ARTHAS_BOOT = "/arthas/arthas-boot.jar";
+    private static final String[] EMBEDDED_ARTHAS_FILES = {
+            "arthas-boot.jar", "arthas-agent.jar", "arthas-core.jar",
+            "arthas-spy.jar", "arthas-client.jar", "arthas.properties", "logback.xml"
+    };
+    private static final String[] EMBEDDED_ARTHAS_LIB = {
+            "libArthasJniLibrary-x64.dll",
+            "libArthasJniLibrary-x64.so",
+            "libArthasJniLibrary-aarch64.so",
+            "libArthasJniLibrary.dylib"
+    };
     private static volatile String cachedArthasBootPath;
+    private static volatile String cachedArthasHome;
     private static volatile Process localArthasProcess;
     private static volatile java.lang.Thread kmbaMainThread;
     private static volatile boolean shuttingDown = false;
@@ -138,6 +149,9 @@ public class ArthasController {
     @RequestMapping("/connectRemote")
     public String connectRemote(@RequestParam String ip, @RequestParam int port) {
         try {
+            if (!waitPortOpen(ip, port, 3000)) {
+                return "error: 无法连接 " + ip + ":" + port + "，请确认目标地址可达且 Arthas WebSocket 端口已开启";
+            }
             stopAllArthas();
             closeGlobalWsWrapperQuietly();
             ArthasWsWrapper.setGlobalAgentInfo(ip, port);
@@ -342,12 +356,16 @@ public class ArthasController {
 
     private Process startLocalArthasBoot(String targetJvmPid) throws IOException {
         String arthasBootPath = ensureArthasBootPath();
+        String arthasHome = ensureArthasHome();
         Path logFile = Files.createTempFile("kmba-arthas-boot-", ".log");
         logFile.toFile().deleteOnExit();
         lastArthasBootLog = logFile;
         File devNull = new File(isWindows() ? "NUL" : "/dev/null");
         ProcessBuilder pb = new ProcessBuilder(
-                resolveJavaBin(), "-jar", arthasBootPath, targetJvmPid)
+                resolveJavaBin(), "-jar", arthasBootPath,
+                "--arthas-home", arthasHome,
+                "--attach-only",
+                targetJvmPid)
                 .redirectInput(ProcessBuilder.Redirect.from(devNull))
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.to(logFile.toFile()));
@@ -396,6 +414,50 @@ public class ArthasController {
                 cachedArthasBootPath = tmp.toAbsolutePath().toString();
                 return cachedArthasBootPath;
             }
+        }
+    }
+
+    /**
+     * 将 classpath 中嵌入的完整 Arthas 发行包解压到临时目录，
+     * 作为 --arthas-home 使用，实现完全离线运行。
+     */
+    private static String ensureArthasHome() throws IOException {
+        String home = cachedArthasHome;
+        if (home != null && Files.isDirectory(Paths.get(home))) {
+            return home;
+        }
+        synchronized (ArthasController.class) {
+            home = cachedArthasHome;
+            if (home != null && Files.isDirectory(Paths.get(home))) {
+                return home;
+            }
+            Path homeDir = Files.createTempDirectory("kmba-arthas-home-");
+            homeDir.toFile().deleteOnExit();
+
+            // 解压顶层 jar / 配置文件
+            for (String name : EMBEDDED_ARTHAS_FILES) {
+                copyResource("/arthas/" + name, homeDir.resolve(name));
+            }
+
+            // 解压 lib/ 下的 native 库
+            Path libDir = homeDir.resolve("lib");
+            Files.createDirectories(libDir);
+            for (String name : EMBEDDED_ARTHAS_LIB) {
+                copyResource("/arthas/lib/" + name, libDir.resolve(name));
+            }
+
+            cachedArthasHome = homeDir.toAbsolutePath().toString();
+            logger.info("Arthas home prepared at: {}", cachedArthasHome);
+            return cachedArthasHome;
+        }
+    }
+
+    private static void copyResource(String resourcePath, Path target) throws IOException {
+        try (InputStream in = ArthasController.class.getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                throw new IOException("Missing embedded resource: " + resourcePath);
+            }
+            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 }

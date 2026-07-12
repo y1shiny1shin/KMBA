@@ -2,6 +2,11 @@
   <library name="arthas-boot">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/arthas-boot.jar!/" />
+      <root url="jar://$PROJECT_DIR$/arthas-boot.jar!/" />
+      <root url="jar://$PROJECT_DIR$/src/main/resources/arthas/arthas-boot.jar!/" />
+      <root url="jar://$PROJECT_DIR$/src/main/resources/arthas/arthas-boot.jar!/" />
+      <root url="jar://$PROJECT_DIR$/src/main/resources/arthas/arthas-boot.jar!/" />
+      <root url="jar://$PROJECT_DIR$/src/main/resources/arthas/arthas-boot.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

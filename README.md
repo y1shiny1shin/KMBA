@@ -68,7 +68,7 @@ mvn clean package -DskipTests
 ### Web 模式
 
 ```bash
-java -jar target/KMBA-0.1.jar
+java -jar target/KMBA.jar
 ```
 
 启动后浏览器访问 `http://localhost:9099`，通过界面连接目标 JVM 并进行操作。
@@ -115,6 +115,28 @@ java -jar KMBA.jar cli 54203 -jad com.InjectServlet
 
 ```bash
 java -jar KMBA.jar cli 54203 --log true -l all
+```
+
+### 启动脚本（release 包）
+
+release 目录下提供了各平台的启动脚本，无参数启动 Web 模式，有参数自动进入 CLI 模式：
+
+```bash
+# Web 模式
+./start.sh
+
+# CLI 模式（参数透传给 java -jar KMBA.jar）
+./start.sh cli 54203 -l all
+./start.sh cli 54203 -u servlet /evil
+./start.sh cli 54203 -jad com.InjectServlet
+./start.sh --help
+```
+
+Windows 平台同理：
+
+```cmd
+start.bat cli 54203 -l all
+start.bat cli 54203 -u servlet /evil
 ```
 
 ### Web 模式使用流程
