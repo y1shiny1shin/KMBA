@@ -15,6 +15,7 @@ import com.kmba.arthas.SpringMvcInterceptor;
 import com.kmba.arthas.Timer;
 import com.kmba.arthas.Upgrade;
 import com.kmba.arthas.Valve;
+import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 
 import java.util.ArrayList;
@@ -73,25 +74,6 @@ public class CliHandler {
             return;
         }
         System.out.println("[+] 已连接");
-
-        // 预热 WebSocket
-        boolean warmed = false;
-        Exception lastEx = null;
-        for (int retry = 0; retry < 3; retry++) {
-            try {
-                ArthasWsWrapper.getWrapper().runCmd("help");
-                warmed = true;
-                break;
-            } catch (Exception e) {
-                lastEx = e;
-                ArthasWsWrapper.setGlobalAgentInfo("127.0.0.1", 8563);
-                java.lang.Thread.sleep(1000);
-            }
-        }
-        if (!warmed) {
-            System.err.println("[!] 预热失败: " + (lastEx != null ? lastEx.getMessage() : "unknown"));
-            return;
-        }
 
         // 执行命令，执行指定参数
         try {

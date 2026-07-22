@@ -77,6 +77,31 @@ public class Util {
 
 
 
+    /**
+     * 预热验证：建立 WebSocket 连接并发送一条命令，确认 Arthas 真正可用。
+     * 失败时自动重置连接并重试，最多重试 maxRetry 次。
+     *
+     * @return true 连接可用，false 所有重试均失败
+     */
+    public static boolean checkConnect(String ip, int port, int maxRetry) {
+        for (int retry = 0; retry < maxRetry; retry++) {
+            try {
+                ArthasWsWrapper.getWrapper().runCmd("help");
+                return true;
+            } catch (Exception e) {
+                logger.warn("checkConnect retry {}/{}: {}", retry + 1, maxRetry, e.getMessage());
+                ArthasWsWrapper.setGlobalAgentInfo(ip, port);
+                try {
+                    java.lang.Thread.sleep(1000);
+                } catch (InterruptedException ie) {
+                    java.lang.Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
     public static String getListResult(int cnt ,String lister) throws Exception {
         ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 

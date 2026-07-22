@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 
 import java.io.BufferedReader;
@@ -134,7 +135,7 @@ public class ArthasController {
             startMainThreadGuard(bootProc, pid);
 
             // Wait until local ws port is ready, so subsequent list/jad calls won't hang.
-            if (!waitPortOpen("127.0.0.1", LOCAL_WS_PORT, 8000)) {
+            if (!waitPortOpen("127.0.0.1", LOCAL_WS_PORT, 30000)) {
                 String tail = readLastLines(lastArthasBootLog, 30);
                 logger.error("arthas-boot did not open ws port {} in time. Last output:\n{}", LOCAL_WS_PORT, tail);
                 if (isPortInUseByOther()) {
@@ -144,6 +145,10 @@ public class ArthasController {
                         + (tail.isEmpty() ? "" : "\n--- arthas-boot output ---\n" + tail);
             }
             ArthasWsWrapper.setGlobalAgentInfo("127.0.0.1", LOCAL_WS_PORT);
+            // 验证给出的连接是否可用
+            if (!Util.checkConnect("127.0.0.1", LOCAL_WS_PORT, 3)) {
+                return "error: arthas ws port open but connect failed (pid=" + pid + ")";
+            }
             return "success";
         } catch (Exception e) {
             logger.error("Failed to connect to process " + pid, e);
@@ -154,12 +159,16 @@ public class ArthasController {
     @RequestMapping("/connectRemote")
     public String connectRemote(@RequestParam String ip, @RequestParam int port) {
         try {
-            if (!waitPortOpen(ip, port, 3000)) {
+            if (!waitPortOpen(ip, port, 30000)) {
                 return "error: 无法连接 " + ip + ":" + port + "，请确认目标地址可达且 Arthas WebSocket 端口已开启";
             }
             stopAllArthas();
             closeGlobalWsWrapperQuietly();
             ArthasWsWrapper.setGlobalAgentInfo(ip, port);
+            // 验证给出的连接是否可用
+            if (!Util.checkConnect(ip, port, 3)) {
+                return "error: WebSocket port open but connect failed (" + ip + ":" + port + ")";
+            }
             return "success";
         } catch (Exception e) {
             logger.error("Failed to connect to remote " + ip + ":" + port, e);
