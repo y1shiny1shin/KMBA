@@ -2,6 +2,7 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -123,8 +124,10 @@ public class ArthasController {
                 }
             } catch (Exception ignored) {}
 
-            stopAllArthas();
-            closeGlobalWsWrapperQuietly();
+            // 完整清理旧实例（agent stop → boot 进程 kill → 端口释放）
+            if (!stopAllArthas()) {
+                return "error: 端口 " + LOCAL_WS_PORT + " 被占用且无法停止旧 arthas agent（请重启目标 JVM 后重试）";
+            }
             captureMainThreadIfNeeded();
 
             final Process bootProc = startLocalArthasBoot(pid);
@@ -134,21 +137,19 @@ public class ArthasController {
             localArthasProcess = bootProc;
             startMainThreadGuard(bootProc, pid);
 
-            // Wait until local ws port is ready, so subsequent list/jad calls won't hang.
             if (!waitPortOpen("127.0.0.1", LOCAL_WS_PORT, 30000)) {
                 String tail = readLastLines(lastArthasBootLog, 30);
                 logger.error("arthas-boot did not open ws port {} in time. Last output:\n{}", LOCAL_WS_PORT, tail);
-                if (isPortInUseByOther()) {
-                    return "error: 端口 " + LOCAL_WS_PORT + " 已被其他进程占用，无法启动 arthas（请先关闭占用该端口的进程，或用『远程连接』指向已存在的 arthas server）";
-                }
                 return "error: local arthas ws port not ready: " + LOCAL_WS_PORT
                         + (tail.isEmpty() ? "" : "\n--- arthas-boot output ---\n" + tail);
             }
             ArthasWsWrapper.setGlobalAgentInfo("127.0.0.1", LOCAL_WS_PORT);
-            // 验证给出的连接是否可用
-            if (!Util.checkConnect("127.0.0.1", LOCAL_WS_PORT, 3)) {
-                return "error: arthas ws port open but connect failed (pid=" + pid + ")";
-            }
+            try {
+                if (!Util.checkConnect("127.0.0.1", LOCAL_WS_PORT, 3)) {
+                    return "error: arthas ws port open but connect failed (pid=" + pid + ")";
+                }
+            } catch (WebsocketNotConnectedException e) {}
+
             return "success";
         } catch (Exception e) {
             logger.error("Failed to connect to process " + pid, e);
@@ -163,9 +164,7 @@ public class ArthasController {
                 return "error: 无法连接 " + ip + ":" + port + "，请确认目标地址可达且 Arthas WebSocket 端口已开启";
             }
             stopAllArthas();
-            closeGlobalWsWrapperQuietly();
             ArthasWsWrapper.setGlobalAgentInfo(ip, port);
-            // 验证给出的连接是否可用
             if (!Util.checkConnect(ip, port, 3)) {
                 return "error: WebSocket port open but connect failed (" + ip + ":" + port + ")";
             }
@@ -203,11 +202,60 @@ public class ArthasController {
         }
     }
 
-    private void stopAllArthas() {
+    /**
+     * 完整停止 arthas：
+     * 1. 通过 WebSocket 向目标 JVM 中的 agent 发送 stop 命令
+     * 2. 杀掉 arthas-boot 进程
+     * 3. 等待端口释放
+     *
+     * @return true 清理完成（端口已释放或本来就没占用），false 端口仍被占用
+     */
+    private boolean stopAllArthas() {
         if (shuttingDown) {
             forceStopAllArthas();
-            return;
+            return true;
         }
+
+        // Step 1: 优先通过 stop 命令优雅停止 agent（最小影响原则）
+        boolean agentWasRunning = isPortReachable("127.0.0.1", LOCAL_WS_PORT, 1000);
+        if (agentWasRunning) {
+            sendStopToAgent();
+            // stop 命令会让 agent 关闭 WebSocket 并释放端口，等待端口释放
+            if (waitForPortRelease(LOCAL_WS_PORT, 8000)) {
+                // agent 已优雅停止，清理 boot 进程
+                killBootProcess();
+                return true;
+            }
+            logger.warn("arthas agent did not stop gracefully after 8s, falling back to force kill");
+        }
+
+        // Step 2: stop 失败或没有 agent 在运行 → 清理 boot 进程
+        killBootProcess();
+
+        // Step 3: 再等一次端口释放（boot 进程退出后 agent 可能也会退出）
+        return waitForPortRelease(LOCAL_WS_PORT, 3000);
+    }
+
+    /**
+     * 通过 WebSocket 向已有 arthas agent 发送 stop 命令。
+     * stop 命令会导致 agent 关闭 WebSocket 并 shutdown，runCmd 返回 null 是预期行为。
+     */
+    private void sendStopToAgent() {
+        try {
+            logger.info("Sending stop to existing arthas agent on port {}...", LOCAL_WS_PORT);
+            closeGlobalWsWrapperQuietly();
+            ArthasWsWrapper.setGlobalAgentInfo("127.0.0.1", LOCAL_WS_PORT);
+            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
+            wrapper.runCmd("stop");
+            // runCmd 返回 null 是正常的：agent 收到 stop 后关闭 WS，轮询超时返回 null
+        } catch (Exception e) {
+            logger.warn("Could not send stop to arthas agent: {}", e.getMessage());
+        } finally {
+            closeGlobalWsWrapperQuietly();
+        }
+    }
+
+    private void killBootProcess() {
         Process p = localArthasProcess;
         if (p != null) {
             try {
@@ -219,12 +267,37 @@ public class ArthasController {
                 if (p.isAlive()) {
                     p.destroyForcibly();
                 }
-                logger.info("Stopped old Arthas process");
+                logger.info("Killed arthas-boot process");
             } catch (Exception e) {
-                logger.error("Error stopping Arthas process", e);
+                logger.error("Error killing arthas-boot process", e);
             } finally {
                 localArthasProcess = null;
             }
+        }
+    }
+
+    private boolean waitForPortRelease(int port, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (!isPortReachable("127.0.0.1", port, 300)) {
+                return true; // 端口已释放
+            }
+            try {
+                java.lang.Thread.sleep(300);
+            } catch (InterruptedException e) {
+                java.lang.Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return !isPortReachable("127.0.0.1", port, 300);
+    }
+
+    private static boolean isPortReachable(String ip, int port, long timeoutMs) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(ip, port), (int) timeoutMs);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -395,16 +468,6 @@ public class ArthasController {
             return String.join("\n", all.subList(from, all.size()));
         } catch (Exception e) {
             return "";
-        }
-    }
-
-    private static boolean isPortInUseByOther() {
-        try (java.net.ServerSocket ss = new java.net.ServerSocket()) {
-            ss.setReuseAddress(false);
-            ss.bind(new InetSocketAddress("127.0.0.1", LOCAL_WS_PORT), 1);
-            return false;
-        } catch (Exception e) {
-            return true;
         }
     }
 

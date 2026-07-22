@@ -87,6 +87,7 @@ public class Util {
         for (int retry = 0; retry < maxRetry; retry++) {
             try {
                 ArthasWsWrapper.getWrapper().runCmd("help");
+                logger.info("checkConnect success {}:{}" ,ip ,port);
                 return true;
             } catch (Exception e) {
                 logger.warn("checkConnect retry {}/{}: {}", retry + 1, maxRetry, e.getMessage());

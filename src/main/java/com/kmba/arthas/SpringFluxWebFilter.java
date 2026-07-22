@@ -75,6 +75,8 @@ public class SpringFluxWebFilter {
             int springFluxCnt = Util.getSpringFluxCnt();
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
+            OGNLUtils.setStrictModeClose();
+
             for (int i = 0 ; i<springFluxCnt ;i++){
                 String cmd = String.format(unloadSFWFbyVmtool ,i ,className);
 

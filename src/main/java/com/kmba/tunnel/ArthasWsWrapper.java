@@ -40,9 +40,11 @@ public class ArthasWsWrapper {
             wsClient.connectBlocking();
             Thread.sleep(500);
 
-
-            // 重置窗口宽度
-            wsClient.send(RESIZE_WIDTH+ENTER);
+            // 重置窗口宽度（WS 可能尚未就绪，忽略异常）
+            try {
+                wsClient.send(RESIZE_WIDTH + ENTER);
+            } catch (Exception ignored) {
+            }
 
             isStartSend = true;
 
@@ -51,23 +53,26 @@ public class ArthasWsWrapper {
 
             return wsClient;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to create arthas ws client: {}", e.getMessage());
             throw new RuntimeException(e);
         }
 
     }
 
     public List<String> runCmd(String cmd) throws InterruptedException {
-        cmd = cmd  + PLAINTEXT;
-        wsClient.send(JSON.toJSONString(new ArthasWsRequest(cmd)));
-        Thread.sleep(500);
+        if (cmd != "help"){
+            logger.info("ExecCmd: {}" ,cmd);
+        }
+        String fullCmd = cmd + PLAINTEXT;
 
-        logger.info("ExecCmd: "+cmd);
+        wsClient.send(JSON.toJSONString(new ArthasWsRequest(fullCmd)));
+        Thread.sleep(500);
 
         if (pollForResult(wsClient)){
             wsClient.setEnd(false);
-            return clearOutput(wsClient.resultMsg ,cmd);
+            return clearOutput(wsClient.resultMsg, fullCmd);
         } else {
+            logger.warn("ExecCmd timeout: {}", cmd);
             return null;
         }
     }

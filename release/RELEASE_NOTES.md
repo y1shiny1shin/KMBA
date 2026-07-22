@@ -1,24 +1,10 @@
 ## 更新日志
 
-### v0.4
-- 优化`Arthas`连接问题，优化离线启动逻辑
-- 添加`springFluxWebFilter`支持
+### v0.4.1
+- 优化`Arthas`连接问题，优化建立连接和断开连接的逻辑
+- 优化`springFluxWebFilter`支持
 - ~~优化代码逻辑，减少意外中的报错~~
-- 优化`Servlet`获取`servletClass`的逻辑
-
-### v0.3.1
-- 解决此问题 `由于jad是直接反编译的class，故存在一个问题，直接反编译出的参数的值可能和内存中的参数的值不一致`
-- 修复`Servlet`无法正确获取`servletClass`的bug
-
-### v0.3
-- **新增 CLI 命令行模式** — 支持 headless 环境、SSH 远程和脚本批量操作，无需浏览器即可完成检测与卸载
-- 新增 SpringMVC Controller / Interceptor 两种内存马支持（共 12 种类型）
-- 入口类 `KmbaApplication` 自动识别 Web / CLI 模式
-- CLI 模式默认关闭日志输出，可通过 `--log true` 开启调试
-
-### v0.2
-- 添加 SpringMVC 两种内存马支持
-- 优化代码结构
+- 优化一部分日志输出逻辑
 
 ---
 
