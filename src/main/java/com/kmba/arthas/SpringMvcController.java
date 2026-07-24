@@ -25,7 +25,7 @@ import static com.kmba.Utils.Dict.Strict_Option;
  * https://jlkl.github.io/2022/05/26/Java-09/
  */
 @RestController
-@RequestMapping("/SMC")
+@RequestMapping("/SpringMvcController")
 public class SpringMvcController {
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
@@ -63,7 +63,7 @@ public class SpringMvcController {
                 }
             }
 
-            logger.info("/SMC/list: {}" , jsonArray);
+            logger.info("/SpringMvcController/list: {}" , jsonArray);
             return jsonArray;
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -81,7 +81,7 @@ public class SpringMvcController {
                 String cmd = String.format(unloadSMCByVmtool,i ,urlPath);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/SMC/unload: {}" , result);
+                logger.info("/SpringMvcController/unload: {}" , result);
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
                 }

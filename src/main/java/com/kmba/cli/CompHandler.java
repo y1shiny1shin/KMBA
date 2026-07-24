@@ -33,7 +33,7 @@ public class CompHandler {
                     return new Listener().unload(target);
                 }
             },
-            new Comp("smc",        "-u smc <urlPath>") {
+            new Comp("springMvcController", "-u springMvcController <urlPath>") {
                 JSONArray list() {
                     return new SpringMvcController().list();
                 }
@@ -41,7 +41,7 @@ public class CompHandler {
                     return new SpringMvcController().unload(target);
                 }
             },
-            new Comp("smi",        "-u smi <className>") {
+            new Comp("springMvcInterceptor", "-u springMvcInterceptor <className>") {
                 JSONArray list() {
                     return new SpringMvcInterceptor().list();
                 }
@@ -49,12 +49,20 @@ public class CompHandler {
                     return new SpringMvcInterceptor().unload(target);
                 }
             },
-            new Comp("sfwf",       "-u sfwf <className>") {
+            new Comp("springFluxWebFilter", "-u springFluxWebFilter <className>") {
                 JSONArray list() {
                     return new SpringFluxWebFilter().list();
                 }
                 String unload(String target, String extra) {
                     return new SpringFluxWebFilter().unload(target);
+                }
+            },
+            new Comp("springFluxNettyHandler", "-u springFluxNettyHandler <className>") {
+                JSONArray list() {
+                    return new SpringFluxNettyHandler().list();
+                }
+                String unload(String target, String extra) {
+                    return new SpringFluxNettyHandler().unload(target);
                 }
             },
             new Comp("valve",      "-u valve <className>") {

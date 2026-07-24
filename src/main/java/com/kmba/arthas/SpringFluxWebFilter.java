@@ -26,7 +26,7 @@ import static com.kmba.Utils.Dict.Strict_Option;
  * https://github.com/ReaJason/MemShellParty
  */
 @RestController
-@RequestMapping("/SFWF")
+@RequestMapping("/SpringFluxWebFilter")
 public class SpringFluxWebFilter {
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 //    @UnmodifiableRandomAccessList[
@@ -61,7 +61,7 @@ public class SpringFluxWebFilter {
                 }
             }
 
-            logger.info("/SFWF/list: {}" , jsonArray);
+            logger.info("/SpringFluxWebFilter/list: {}" , jsonArray);
             return jsonArray;
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -81,9 +81,10 @@ public class SpringFluxWebFilter {
                 String cmd = String.format(unloadSFWFbyVmtool ,i ,className);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/SFWF/unload: {}" , result);
+                logger.info("/SpringFluxWebFilter/unload: {}" , result);
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
+                    return "failed";
                 }
             }
             return "success";

@@ -125,7 +125,7 @@ public class CliHandler {
         sb.append("\n");
         sb.append("命令:\n");
         sb.append("  -l  <component>   列出指定类型的组件\n");
-        sb.append("  -l  all           列出全部 13 种组件\n");
+        sb.append("  -l  all           列出全部 14 种组件\n");
         sb.append("  -u  <组件> <目标> [额外参数]\n");
         sb.append("                    卸载/移除恶意组件\n");
         sb.append("  -jad <类名>       反编译并显示类源码\n");
@@ -148,7 +148,7 @@ public class CliHandler {
         sb.append("  java -jar KMBA.jar cli 54203 -l all\n");
         sb.append("  java -jar KMBA.jar cli 54203 -l servlet\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u servlet /evil\n");
-        sb.append("  java -jar KMBA.jar cli 54203 -u smc /exec\n");
+        sb.append("  java -jar KMBA.jar cli 54203 -u springMvcController /exec\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u proxyValve first com.InjectValve\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u proxyValve basic com.InjectValve\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u thread myThread com.EvilTask\n");

@@ -12,6 +12,7 @@ public class OGNLUtils {
     private static Logger logger = LoggerFactory.getLogger(Util.class.getName());
     private static String getArthasClassLoaderHash = "classloader -l | grep taobao";
     private static String closeOGNLStrictMode = "ognl -c %s '#field = @com.taobao.arthas.core.util.reflect.FieldUtils@getDeclaredField(Class.forName(\"ognl.OgnlRuntime\"),\"_useStricterInvocation\",true), #modifiers = @com.taobao.arthas.core.util.reflect.FieldUtils@getDeclaredField(#field.getClass(),\"modifiers\",true),#modifiers.setInt(#field, #field.getModifiers() & ~@java.lang.reflect.Modifier@FINAL),#field.set(null,false)'";
+    private static String closeStrict = "options strict false";
 
     public static boolean setStrictModeClose() {
         try{
@@ -36,6 +37,7 @@ public class OGNLUtils {
             } else {
                 String cmd = String.format(closeOGNLStrictMode, arthasHash);
                 logger.info("setStrictModeClose: {}" ,wrapper.runCmd(cmd));
+                logger.info("closeStrict: {}" ,wrapper.runCmd(closeStrict));
 
                 return true;
             }

@@ -57,22 +57,7 @@ const state = {
     jadContext: null            // { className, classLoaderHash } of current JAD view
 };
 
-const modules = [
-    { id:'overview', title:'概览', desc:'全局统计、可疑命中、规则管理' },
-    { id:'servlet', title:'Servlet', desc:'route -> className', list:'/servlet/list' },
-    { id:'filter', title:'Filter', desc:'filterName -> URLPattern', list:'/filter/list' },
-    { id:'listener', title:'Listener', desc:'className', list:'/listener/list' },
-    { id:'socket', title:'WebSocket', desc:'urlName -> className', list:'/socket/list' },
-    { id:'proxyValve', title:'ProxyValve', desc:'first/basic -> className', list:'/proxyValve/list' },
-    { id:'valve', title:'Valve', desc:'className', list:'/valve/list' },
-    { id:'executor', title:'Executor', desc:'className', list:'/executor/list' },
-    { id:'thread', title:'Thread', desc:'threadName -> className', list:'/thread/list' },
-    { id:'timer', title:'Timer', desc:'className', list:'/timer/list' },
-    { id:'upgrade', title:'Upgrade', desc:'upgradeName -> className', list:'/upgrade/list' },
-    { id:'smc', title:'SpringMVC Controller', desc:'urlPath -> className', list:'/SMC/list' },
-    { id:'smi', title:'SpringMVC Interceptor', desc:'className', list:'/SMI/list' },
-    { id:'sfwf', title:'SpringFlux WebFilter', desc:'filterName -> className', list:'/SFWF/list' }
-];
+// 模块配置由 /js/config.js 提供（MODULES 数组）
 
 function signature(moduleId, row){
     return [moduleId, row.key || '', row.className || '', row.aux || ''].join('@@');
@@ -265,12 +250,12 @@ function parseFilterTriples(text){
     return out;
 }
 
-function moduleById(id){ return modules.find(m => m.id === id) || modules[0]; }
+function moduleById(id){ return MODULES.find(m => m.id === id) || MODULES[0]; }
 
 function navRender(){
     const nav = $$('#nav');
     nav.innerHTML = '';
-    for (const m of modules){
+    for (const m of MODULES){
         const btn = document.createElement('button');
         const active = (state.selected === m.id);
         const cnt = m.id === 'overview' ? '' : (state.moduleCounts[m.id] == null ? '' : String(state.moduleCounts[m.id]));
@@ -519,8 +504,8 @@ const ui = {
         const op = dock.push('加载概览', '正在加载所有模块统计...', 'busy');
         const counts = {};
         let i = 0;
-        const totalM = modules.filter(x => x.id !== 'overview').length;
-        for (const m of modules){
+        const totalM = MODULES.filter(x => x.id !== 'overview').length;
+        for (const m of MODULES){
             if (m.id === 'overview') continue;
             i++;
             $$('#ovHint').textContent = '加载中... ' + i + '/' + totalM + ' · ' + m.title;
@@ -640,54 +625,36 @@ const ui = {
             return;
         }
 
-        // Special modes with risk explanation.
-        if (moduleId === 'executor'){
-            const picked = await choice(
-                'Executor 卸载模式',
-                label,
-                '两种方式各有利弊（建议先温柔）。请选择:',
-                [
-                    { v:'gently', t:'温柔卸载 (unloadGently)', d:'对业务影响更小，但攻击者仍可能继续添加恶意 Executor。' },
-                    { v:'brutly', t:'暴力卸载 (unloadBrutly)', d:'更彻底，但可能导致后续 Executor 加载失败或类型不兼容，业务风险更高。' }
-                ]
-            );
-            if (!picked){
-                dock.push('Executor 卸载', '已取消: ' + label, 'warn');
-                return;
-            }
-            const op = dock.push('Executor 卸载', '执行中: ' + picked + ' · ' + label, 'busy');
-            const url = picked === 'brutly' ? '/executor/unloadBrutly' : '/executor/unloadGently';
-            const res = (await apiText(url + '?className=' + encodeURIComponent(row.className))).trim();
-            if (res === 'success') dock.update(op, { level:'ok', time: nowTime(), msg:'卸载成功: ' + label });
-            else dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败: ' + label + '\n' + res });
-            await ui.refreshModule(moduleId);
+        const u = m.unload;
+        if (!u) {
+            dock.push('卸载', '该模块不支持卸载: ' + m.title, 'warn');
             return;
         }
 
-        if (moduleId === 'timer'){
+        // 有 choices 配置 → 显示多选弹窗
+        if (u.choices){
             const picked = await choice(
-                'Timer 卸载模式',
+                m.title + ' 卸载模式',
                 label,
                 '请选择卸载方式:',
-                [
-                    { v:'gently', t:'温和取消 (unload)', d:'调用 cancel，更安全。' },
-                    { v:'force', t:'强制停止 (unloadForce)', d:'可能有资源泄露风险，且 stop 已弃用，执行可能失败。' }
-                ]
+                u.choices
             );
             if (!picked){
-                dock.push('Timer 卸载', '已取消: ' + label, 'warn');
+                dock.push(m.title + ' 卸载', '已取消: ' + label, 'warn');
                 return;
             }
-            const op = dock.push('Timer 卸载', '执行中: ' + picked + ' · ' + label, 'busy');
-            const url = picked === 'force' ? '/timer/unloadForce' : '/timer/unload';
-            const res = (await apiText(url + '?className=' + encodeURIComponent(row.className))).trim();
+            const op = dock.push(m.title + ' 卸载', '执行中: ' + picked + ' · ' + label, 'busy');
+            const url = typeof u.url === 'function' ? u.url(picked) : u.url;
+            const qs = new URLSearchParams();
+            if (u.params) u.params(qs, row);
+            const res = (await apiText(url + '?' + qs.toString())).trim();
             if (res === 'success') dock.update(op, { level:'ok', time: nowTime(), msg:'卸载成功: ' + label });
             else dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败: ' + label + '\n' + res });
             await ui.refreshModule(moduleId);
             return;
         }
 
-        // Confirmation via choice modal (no native confirm).
+        // 普通卸载 → 确认弹窗
         const ok = await choice(
             '确认卸载',
             m.title,
@@ -715,28 +682,13 @@ const ui = {
     },
 
     buildUnload(moduleId, row){
+        const m = moduleById(moduleId);
+        if (!m || !m.unload) return { url: '', qs: new URLSearchParams() };
         const qs = new URLSearchParams();
-        if (moduleId === 'servlet'){ qs.set('urlPath', row.key || ''); return { url:'/servlet/unload', qs }; }
-        if (moduleId === 'filter'){
-            // New format uses urlPattern as key.
-            qs.set('URLPattern', row.key || '');
-            return { url:'/filter/unload', qs };
-        }
-        if (moduleId === 'listener'){ qs.set('className', row.className || ''); return { url:'/listener/unload', qs }; }
-        if (moduleId === 'socket'){ qs.set('urlName', row.key || ''); qs.set('className', row.className || ''); return { url:'/socket/unload', qs }; }
-        if (moduleId === 'proxyValve'){
-            qs.set('className', row.className || '');
-            const k = String(row.key || '').toLowerCase();
-            const url = (k === 'basic') ? '/proxyValve/unloadBasic' : '/proxyValve/unloadFirst';
-            return { url, qs };
-        }
-        if (moduleId === 'valve'){ qs.set('className', row.className || ''); return { url:'/valve/unload', qs }; }
-        if (moduleId === 'thread'){ qs.set('threadName', row.key || ''); qs.set('className', row.className || ''); return { url:'/thread/unload', qs }; }
-        if (moduleId === 'upgrade'){ qs.set('upgradeName', row.key || ''); return { url:'/upgrade/unload', qs }; }
-        if (moduleId === 'smc'){ qs.set('urlPath', row.key || ''); return { url:'/SMC/unload', qs }; }
-        if (moduleId === 'smi'){ qs.set('className', row.className || ''); return { url:'/SMI/unload', qs }; }
-        if (moduleId === 'sfwf'){ qs.set('className', row.className || ''); return { url:'/SFWF/unload', qs }; }
-        return { url:'', qs };
+        if (m.unload.params) m.unload.params(qs, row);
+        const u = m.unload;
+        const url = typeof u.url === 'function' ? (u.choices ? '' : u.url(row)) : u.url;
+        return { url, qs };
     },
 
     async scanModule(moduleId){
@@ -771,7 +723,7 @@ const ui = {
 
     async scanAll(){
         const op = dock.push('提取全局可疑', '开始扫描所有模块...', 'busy');
-        for (const m of modules){
+        for (const m of MODULES){
             if (m.id === 'overview') continue;
             if (!state.moduleRows[m.id]) await ui.refreshModule(m.id);
             await ui.scanModule(m.id);

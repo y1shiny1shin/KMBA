@@ -560,3 +560,10 @@ vmtool -action getInstances --className org.springframework.web.server.handler.F
 vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances[0],#chain=#handler.chain,#chain.allFilters'
 
 vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances[%s],#chain=#handler.chain,#chain.allFilters'
+
+
+vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER}'
+
+vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit}'
+
+vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit.getClass.getName=="com.flux.evilNettyHandler"}'

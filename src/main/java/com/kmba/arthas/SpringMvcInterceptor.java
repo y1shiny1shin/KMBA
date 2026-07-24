@@ -26,7 +26,7 @@ import static com.kmba.Utils.Dict.Strict_Option;
  * https://goodapple.top/archives/1355
  */
 @RestController
-@RequestMapping("/SMI")
+@RequestMapping("/SpringMvcInterceptor")
 public class SpringMvcInterceptor {
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
@@ -72,7 +72,7 @@ public class SpringMvcInterceptor {
                 }
             }
 
-            logger.info("/SMI/list: {}" ,jsonArray);
+            logger.info("/SpringMvcInterceptor/list: {}" ,jsonArray);
 
             return jsonArray;
 
@@ -92,7 +92,7 @@ public class SpringMvcInterceptor {
                 String cmd = String.format(unloadSMIByVmtool ,i ,className);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/SMI/unload: {}" , result);
+                logger.info("/SpringMvcInterceptor/unload: {}" , result);
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
                 }
