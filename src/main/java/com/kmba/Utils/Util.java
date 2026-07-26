@@ -20,6 +20,7 @@ public class Util {
     public static String getEndpointCntExpress = "vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express 'instances.length'";
     public static String getSpringCntExpress = "vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances.length'";
     public static String getSpringFluxCntExpress = "vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances.length'";
+    public static String getNettyServerCntExpress = "vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express 'instances.length'";
 
     private static final Pattern INTEGER_PATTERN =
             Pattern.compile("@Integer\\[(\\d+)]");
@@ -75,6 +76,9 @@ public class Util {
         return executeCountCommand(getSpringFluxCntExpress ,"SpringFluxCnt");
     }
 
+    public static int getNettyServerCnt() {
+        return executeCountCommand(getNettyServerCntExpress ,"NettyServerCnt");
+    }
 
 
     /**
