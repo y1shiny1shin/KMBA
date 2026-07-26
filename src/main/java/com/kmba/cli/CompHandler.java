@@ -65,6 +65,22 @@ public class CompHandler {
                     return new SpringFluxNettyHandler().unload(target);
                 }
             },
+            new Comp("springFluxHandlerMethod", "-u springFluxHandlerMethod <className>") {
+                JSONArray list() {
+                    return new SpringFluxHandlerMethod().list();
+                }
+                String unload(String target, String extra) {
+                    return new SpringFluxHandlerMethod().unload(target);
+                }
+            },
+            new Comp("springFluxHandlerFunction", "-u springFluxHandlerFunction <url>") {
+                JSONArray list() {
+                    return new SpringFluxHandlerFunction().list();
+                }
+                String unload(String target, String extra) {
+                    return new SpringFluxHandlerFunction().unload(target);
+                }
+            },
             new Comp("valve",      "-u valve <className>") {
                 JSONArray list() {
                     return new Valve().list();

@@ -125,7 +125,7 @@ public class CliHandler {
         sb.append("\n");
         sb.append("命令:\n");
         sb.append("  -l  <component>   列出指定类型的组件\n");
-        sb.append("  -l  all           列出全部 14 种组件\n");
+        sb.append(String.format("  -l  all           列出全部 %s 种组件\n" ,COMPS.length));
         sb.append("  -u  <组件> <目标> [额外参数]\n");
         sb.append("                    卸载/移除恶意组件\n");
         sb.append("  -jad <类名>       反编译并显示类源码\n");

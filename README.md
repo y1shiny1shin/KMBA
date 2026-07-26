@@ -5,7 +5,7 @@ KMBA 是一个 Java 内存马应急响应工具，支持 **Web 管理界面**和
 
 ## 功能特性
 
-- **覆盖 13 种内存马类型** — Servlet、Filter、Listener、WebSocket、Valve、ProxyValve、Executor、Thread、Timer、Upgrade、SpringMVC Controller、SpringMVC Interceptor、SpringFlux WebFilter
+- **覆盖 16 种内存马类型** — Servlet、Filter、Listener、WebSocket、Valve、ProxyValve、Executor、Thread、Timer、Upgrade、SpringMVC Controller、SpringMVC Interceptor、SpringFlux WebFilter、SpringFlux NettyHandler、SpringFlux HandlerMethod、SpringFlux HandlerFunction
 - **Web 管理界面** — 暗色主题 SPA，无 CDN 依赖，所有前端资源本地化
 - **CLI 命令行模式** — 支持 headless 环境、脚本批量和 SSH 远程场景，无需浏览器
 - **按需 JAD 反编译** — 直接从 JVM 中提取任意已加载类的 Java 源码并格式化展示
@@ -15,21 +15,24 @@ KMBA 是一个 Java 内存马应急响应工具，支持 **Web 管理界面**和
 
 ## 支持的内存马类型
 
-| 模块                  | 目标类 / 范围                                                  | 检测方式                  |
-|-----------------------|--------------------------------------------------------------|--------------------------|
-| Servlet               | `StandardContext.servletMappings`                            | vmtool + OGNL 枚举        |
-| Filter                | `StandardContext.filterMaps` + `filterConfigs`               | vmtool + OGNL 枚举        |
-| Listener              | `StandardContext.applicationEventListenersList`              | vmtool + OGNL 枚举        |
-| WebSocket             | `WsServerContainer.configExactMatchMap`                      | vmtool + OGNL 枚举        |
-| Valve                 | `StandardContext.pipeline.valves`                            | vmtool + OGNL 枚举        |
-| ProxyValve            | `StandardPipeline` 的 first/basic 字段 (Java Proxy)          | vmtool + 反射遍历          |
-| Executor              | `NioEndpoint.executor`（被替换的执行器实例）                    | vmtool + 类名比对          |
-| Thread                | 所有 `java.lang.Thread` 实例（按 target 类过滤）               | vmtool + 线程名匹配        |
-| Timer                 | 所有 `java.util.TimerTask` 实例                              | vmtool + 类名过滤          |
-| Upgrade               | `AbstractHttp11Protocol.httpUpgradeProtocols`                | vmtool + OGNL 枚举        |
-| SpringMVC Controller  | `RequestMappingHandlerMapping.mappingRegistry`               | vmtool + OGNL 枚举        |
-| SpringMVC Interceptor | `RequestMappingHandlerMapping.adaptedInterceptors`           | vmtool + OGNL 枚举        |
-| SpringFlux WebFilter  | `FilteringWebHandler.chain.allFilters`                      | vmtool + OGNL 枚举        |
+| 模块                  | 目标类 / 范围                                                  |
+|-----------------------|--------------------------------------------------------------|
+| Servlet               | `StandardContext.servletMappings`                            |
+| Filter                | `StandardContext.filterMaps` + `filterConfigs`               |
+| Listener              | `StandardContext.applicationEventListenersList`              |
+| WebSocket             | `WsServerContainer.configExactMatchMap`                      |
+| Valve                 | `StandardContext.pipeline.valves`                            |
+| ProxyValve            | `StandardPipeline` 的 first/basic 字段 (Java Proxy)          |
+| Executor              | `NioEndpoint.executor`（被替换的执行器实例）                    |
+| Thread                | 所有 `java.lang.Thread` 实例（按 target 类过滤）               |
+| Timer                 | 所有 `java.util.TimerTask` 实例                              |
+| Upgrade               | `AbstractHttp11Protocol.httpUpgradeProtocols`                |
+| SpringMVC Controller  | `RequestMappingHandlerMapping.mappingRegistry`               |
+| SpringMVC Interceptor | `RequestMappingHandlerMapping.adaptedInterceptors`           |
+| SpringFlux WebFilter  | `FilteringWebHandler.chain.allFilters`                      |
+| SpringFlux NettyHandler | `HttpServerConfig.doOnChannelInit`                        |
+| SpringFlux HandlerMethod | `RequestMappingHandlerMapping.handlerMethods`            | 
+| SpringFlux HandlerFunction | `RouterFunctionMapping.routerFunction`                |
 
 ## 架构
 
@@ -149,48 +152,6 @@ start.bat cli 54203 -u servlet /evil
 5. 对可疑条目点击 **UNLOAD** 进行卸载（部分类型提供温和/强制两种策略选择）
 6. 使用 **提取可疑** 批量按关键字规则扫描组件
 7. 使用 **命令** 终端执行任意 Arthas 原始命令
-
-## 项目结构
-
-```
-src/main/java/com/kmba/
-├── KmbaApplication.java          # 启动入口（自动识别 Web / CLI 模式）
-├── arthas/
-│   ├── ArthasController.java     # 连接管理、进程列表、命令执行
-│   ├── Servlet.java              # Servlet 型内存马检测/卸载
-│   ├── Filter.java               # Filter 型内存马检测/卸载
-│   ├── Listener.java             # Listener 型内存马检测/卸载
-│   ├── Socket.java               # WebSocket 型内存马检测/卸载
-│   ├── ProxyValve.java           # Proxy 型 Valve 检测/卸载
-│   ├── Valve.java                # Valve 型内存马检测/卸载
-│   ├── Executor.java             # Executor 替换型检测/卸载
-│   ├── Thread.java               # 恶意线程检测/卸载
-│   ├── Timer.java                # TimerTask 型检测/卸载
-│   ├── Upgrade.java              # HTTP Upgrade 型检测/卸载
-│   ├── SpringMvcController.java  # SpringMVC Controller 检测/卸载
-│   ├── SpringMvcInterceptor.java # SpringMVC Interceptor 检测/卸载
-│   └── JAD.java                  # 类反编译（jad/sc）
-├── cli/
-│   ├── CliHandler.java           # CLI 模式入口，参数解析与命令派发
-│   └── LogConfig.java            # CLI 模式日志控制
-├── tunnel/
-│   └── ArthasWsWrapper.java      # WebSocket 封装，串行命令执行
-├── Utils/
-│   ├── ArthasWsClient.java       # Arthas WebSocket 协议客户端
-│   ├── ArthasWsRequest.java      # Arthas WS 请求模型
-│   ├── ArthasStringUtil.java     # 字符串解析工具
-│   ├── Dict.java                 # 常量与配置
-│   ├── OGNLUtils.java            # OGNL 严格模式绕过
-│   └── TomcatUtil.java           # Tomcat 实例计数工具
-└── pojo/
-    └── AgentInfo.java            # Agent 连接信息模型
-
-src/main/resources/
-├── static/
-│   ├── index.html                # 单页管理界面
-│   └── js/                       # Prism.js、tailwindcss、lucide 图标
-└── application.properties        # 服务配置（端口 9099）
-```
 
 ## 依赖
 

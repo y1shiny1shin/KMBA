@@ -66,5 +66,9 @@ const MODULES = [
     { id: 'springFluxWebFilter',    title: 'SpringFlux WebFilter',    desc: 'filterName -> className', list: '/SpringFluxWebFilter/list',
         unload: { url: '/SpringFluxWebFilter/unload',    params: (qs, r) => qs.set('className', r.className || '') } },
     { id: 'springFluxNettyHandler', title: 'SpringFlux NettyHandler', desc: 'className',                list: '/SpringFluxNettyHandler/list',
-        unload: { url: '/SpringFluxNettyHandler/unload', params: (qs, r) => qs.set('className', r.className || '') } }
+        unload: { url: '/SpringFluxNettyHandler/unload', params: (qs, r) => qs.set('className', r.className || '') } },
+    { id: 'springFluxHandlerMethod', title: 'SpringFlux HandlerMethod', desc: 'urlPath -> className',    list: '/SpringFluxHandlerMethod/list',
+        unload: { url: '/SpringFluxHandlerMethod/unload', params: (qs, r) => qs.set('className', r.className || '') } },
+    { id: 'springFluxHandlerFunction', title: 'SpringFlux HandlerFunction', desc: 'urlPath -> className', list: '/SpringFluxHandlerFunction/list',
+        unload: { url: '/SpringFluxHandlerFunction/unload', params: (qs, r) => qs.set('url', r.key || '') } }
 ];

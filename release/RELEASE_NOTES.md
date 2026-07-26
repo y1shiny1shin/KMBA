@@ -1,7 +1,7 @@
 ## 更新日志
 
 ### v0.4.2
-- 添加`springFluxNettyHandler`支持
+- 做完`springFlux`四种类型内存马（来源[MemshellParty-SpringWebFlux](https://github.com/ReaJason/MemShellParty/tree/master/generator/src/main/java/com/reajason/javaweb/memshell/injector/springwebflux)）的支持
 - 重构部分代码
 
 ---
