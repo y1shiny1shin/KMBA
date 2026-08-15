@@ -21,7 +21,7 @@ const MODULES = [
     { id: 'servlet',  title: 'Servlet',   desc: 'route -> className',       list: '/servlet/list',
         unload: { url: '/servlet/unload',  params: (qs, r) => qs.set('urlPath', r.key || '') } },
     { id: 'filter',   title: 'Filter',    desc: 'filterName -> URLPattern',  list: '/filter/list',
-        unload: { url: '/filter/unload',   params: (qs, r) => qs.set('URLPattern', r.key || '') } },
+        unload: { url: '/filter/unload',   params: (qs, r) => qs.set('filterName', r.aux || '') } },
     { id: 'listener', title: 'Listener',  desc: 'className',                 list: '/listener/list',
         unload: { url: '/listener/unload', params: (qs, r) => qs.set('className', r.className || '') } },
     { id: 'socket',   title: 'WebSocket', desc: 'urlName -> className',      list: '/socket/list',

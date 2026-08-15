@@ -608,3 +608,39 @@ vmtool --action getInstances --className 'org.springframework.boot.web.embedded.
 
 
 vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1'   --express '#mappings=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings(),#rfm=#mappings.{? #this.class.name.contains("RouterFunctionMapping")}[0],#rfm.routerFunction.first'
+
+
+vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#mappings=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings(),#rfm=#mappings.{? #this.class.name.contains("RouterFunctionMapping")}[0],#length=#rfm.routerFunction.toString().split("\n").length,@java.util.Collections@nCopies(#length, "hello").forEach({ @java.lang.System@out.println(#this) })'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+":"+#this.filterName+":"+#filterConfigs[#a].filterClass):(null)}'
+
+vmtool --action getInstances --className javax.servlet.ServletContext --express 'instances'
+
+SessionNauoFilter
+
+vmtool --action getInstances --className javax.servlet.ServletContext --express 'instances[0].context.getFilterRegistration("SessionNauoFilter")'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.filterDefs'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.{#this.filterDefs}'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.{#this.filterDef}'
+
+
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#configs=#ctx.filterConfigs,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("a")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.removeFilterDef(#ms[#c].filterName),#c=#c+1}'
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#configs=#ctx.filterConfigs,#ctx.removeFilterDef(#configs["SessionNauoFilter"])'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#configs=#ctx.filterConfigs,#e=#configs["SessionNauoFilter"],#ctx.removeFilterDef(#configs["SessionNauoFilter"])'
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0].filterDefs.remove("SessionNauoFilter")'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("%s")},#ms.{#ctx.removeFilterMap(#ms[#c]),#c=#c+1}'

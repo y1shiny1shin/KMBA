@@ -27,9 +27,12 @@ import static com.kmba.Utils.Dict.getTomcatSiteCnt;
 @RestController
 @RequestMapping("/filter")
 public class Filter {
+    /**
+     * filter 查询与卸载优化，最好是通过filterName卸载
+     */
 //    private String listFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#tomcatContext=instances[%s].filterMaps.array'";
     private String listFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+\":\"+#this.filterName+\":\"+#filterConfigs[#a].filterClass):(null)}'";
-    private String unloadFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals(\"%s\")},#ms.{#ctx.removeFilterMap(#ms[#c]),#c=#c+1}'";
+    private String unloadFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals(\"%s\")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.removeFilterDef(#ms[#c].filterName),#c=#c+1}'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @RequestMapping("/list")
     public JSONArray list() {
@@ -83,12 +86,12 @@ public class Filter {
     }
 
     @RequestMapping("/unload")
-    public String unload(@RequestParam String URLPattern){
+    public String unload(@RequestParam String filterName){
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             int tomcatSiteCnt = getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
-                String cmd = String.format(unloadFilterByVmtool , i , URLPattern);
+                String cmd = String.format(unloadFilterByVmtool , i , filterName);
                 logger.info("/filter/unload: {}" ,wrapper.runCmd(cmd));
             }
             return "success";

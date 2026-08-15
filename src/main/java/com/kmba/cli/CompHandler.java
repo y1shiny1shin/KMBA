@@ -17,7 +17,7 @@ public class CompHandler {
                     return new Servlet().unload(target);
                 }
             },
-            new Comp("filter",     "-u filter <urlPattern>") {
+            new Comp("filter",     "-u filter <filterName>") {
                 JSONArray list() {
                     return new Filter().list();
                 }
