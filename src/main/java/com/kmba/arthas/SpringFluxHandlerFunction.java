@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  * ]
  * 写入到first和second没有规律可言，且无直接的remove方法，
  * 只能使用递归遍历，写入到一个新的DifferentComposedRouterFunction对象中，再使用反射替换原本的
- * 但是ONGL表达式不支持递归，故而有点麻烦，这里先搁置一下
+ * 但是OGNL表达式不支持递归，故而有点麻烦，这里先搁置一下
  *
  * 考虑到目前仅有memshellparty对这个木马做了武器化，所以这里也只对这个木马做处理
  * 但是也不是特别好做替换，因为要遍历
@@ -78,6 +78,9 @@ public class SpringFluxHandlerFunction {
      * toString() 输出示例：
      *   /execf -> com.flux.ErrorHandlerFunction@4a1fb764
      *   /hello0 -> com.flux.evilHandlerFunction$HelloHandlerFunction@2d0db7b9
+     *
+     *
+     *  [@String[/shell-flux-function -> MemshellFluxHandlerFunction$$Lambda$653/1422643904@2199a151]]
      */
     @RequestMapping("/list")
     public JSONArray list() {
@@ -86,7 +89,7 @@ public class SpringFluxHandlerFunction {
             JSONArray jsonArray = new JSONArray();
 
             String resultAll = Util.getListResult(nettyServerCnt, listSFHFByVmtool);
-            String regex = "(/[^ ]+) -> ([0-9a-zA-Z.$_]+)@[0-9a-f]+";
+            String regex = "(/[^ ]+) -> ([0-9a-zA-Z.$_/]+)@[0-9a-f]+";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 

@@ -54,7 +54,6 @@ public class SpringMvcInterceptor {
             OGNLUtils.setStrictModeClose();
 
             String resultAll = Util.getListResult(springCnt ,listSMIByVmtool);
-            System.out.println(resultAll);
 
             String regex = "\\@([0-9a-zA-Z]+)\\[([0-9a-zA-Z.$_]+)\\@";
 
@@ -66,7 +65,7 @@ public class SpringMvcInterceptor {
                 String SMIName = matcher.group(1);
                 String className = matcher.group(2);
                 jsonObject.put(SMIName ,className);
-                System.out.println(jsonObject);
+
                 if (!jsonArray.contains(jsonObject)){
                     jsonArray.add(jsonObject);
                 }
@@ -88,6 +87,8 @@ public class SpringMvcInterceptor {
             int springCnt = Util.getSpringCnt();
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
+            OGNLUtils.setStrictModeClose();
+
             for (int i = 0 ; i<springCnt ;i++){
                 String cmd = String.format(unloadSMIByVmtool ,i ,className);
 
@@ -95,6 +96,7 @@ public class SpringMvcInterceptor {
                 logger.info("/SpringMvcInterceptor/unload: {}" , result);
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
+                    return "OGNL execute failed";
                 }
             }
             return "success";

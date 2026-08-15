@@ -643,4 +643,61 @@ vmtool --action getInstances --className org.apache.catalina.core.StandardContex
 vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0].filterDefs.remove("SessionNauoFilter")'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("%s")},#ms.{#ctx.removeFilterMap(#ms[#c]),#c=#c+1}'
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals("%s")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.removeFilterDef(#ms[#c].filterName),#c=#c+1}'
+
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#basicField=#pip.class.getDeclaredField("basic"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#x={(#first!=null)?{"first"+":"+#first.class.name,"basic"+":"+#basic.class.name}:{"basic"+":"+#basic.class.name}},#x[0]'
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].pipeline.getValves()'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("com.sun.proxy.$Proxy56"))?(#evil=@java.lang.reflect.Proxy@getInvocatiolHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoader org.springframework.boot.loader.LaunchedURLClassLoader --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("com.sun.proxy.$Proxy56"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].getClass.getClass.getClassLoader.getClass.name'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("%s")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("MemshellValve")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'
+
+
+[@UnmodifiableMap[, 
+@RequestMappingInfo[{ /, produces [application/json;charset=UTF-8]}]:@HandlerMethod[lab.VulnController#index(String)],
+, @RequestMappingInfo[{[GET, POST] /shell-flux-method2}]:@HandlerMethod[MemshellFluxHandlerMethod#simple()],, @RequestMappingInfo[{[GET, POST] /shell-flux-method}]:@HandlerMethod[MemshellFluxHandlerMethod#handle(ServerWebExchange)],, ]]
+
+
+vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#this}'
+
+
+vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#tmpkey=#this,#pattern=#tmpkey.patternsCondition.patterns.toString(),#ms[#tmpkey]}'
+@ArrayList[
+    @String[[/]],
+    @String[[/shell-flux-method2]],
+    @String[[/shell-flux-method]],
+]
+
+
+vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances[%s],#chain=#handler.chain,#oldFilters=#chain.getFilters(),#newFilters=new java.util.ArrayList(),#oldFilters.{(#this.class.getName()!="%s")?(#tmp=#this,#newFilters.add(#tmp)):(null)},#newChain=new org.springframework.web.server.handler.DefaultWebFilterChain(#chain.getHandler(),#newFilters),#f=#handler.getClass().getDeclaredField("chain"),#f.setAccessible(true),#mod=#f.getClass.getDeclaredField("modifiers"),#mod.setAccessible(true),#mod.setInt(#f,#f.getModifiers()&~@java.lang.reflect.Modifier@FINAL),#f.set(#handler,#newChain),#mod.setInt(#f,#f.getModifiers()&@java.lang.reflect.Modifier@FINAL)'
+
+
+vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+
+15:30:51.329 [main] INFO com.kmba.tunnel.ArthasWsWrapper - ExecCmd: vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="MemshellFluxNettyHandler")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+15:30:51.830 [main] INFO com.kmba.arthas.SpringFluxNettyHandler - /SpringFluxNettyHandler/unload: [Failed to execute ognl, exception message: ognl.OgnlException: Could not get static field NOOP_CONFIGURER from class reactor.netty.ReactorNetty [java.lang.ClassNotFoundException: Unable to resolve class: reactor.netty.ReactorNetty], please check $HOME/logs/arthas/arthas.log for more details.]
+15:30:51.830 [main] ERROR com.kmba.arthas.SpringFluxNettyHandler - Failed to execute ognl, exception message: ognl.OgnlException: Could not get static field NOOP_CONFIGURER from class reactor.netty.ReactorNetty [java.lang.ClassNotFoundException: Unable to resolve class: reactor.netty.ReactorNetty], please check $HOME/logs/arthas/arthas.log for more details.
+
+
+
+vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+
+vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express '#hsc=instances[%s],{(#hsc.doOnChannelInit.getClass.getName=="%s")?(#hsc.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},#hsc.doOnChannelInit'
+
+vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader org.springframework.boot.loader.LaunchedURLClassLoader --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+
+
+vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext -classLoader  --express '#map=instances[0].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map)'

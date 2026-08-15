@@ -72,7 +72,12 @@ public class Thread {
             for (int i = 0; i < threadCnt; i++) {
                 String cmd = String.format(unloadThreadByVmtool, i , threadName , className);
 
-                logger.info("/thread/unload: "+wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/thread/unload: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
             return "success";
 

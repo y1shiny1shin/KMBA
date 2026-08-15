@@ -55,7 +55,7 @@ public class Listener {
                 if (!(result.isEmpty() || result == null)) {
                     for (String result0: result){
                         if (result0 != "@CopyOnWriteArrayList[isEmpty=true;size=0]"){
-                            String regex = "@\\w+\\[([0-9a-zA-Z.$_]+)@[0-9a-f]{8}\\]";
+                            String regex = "@\\w+\\[([0-9a-zA-Z.$_]+)@[0-9a-f]{1,8}\\]";
                             Pattern pattern = Pattern.compile(regex);
                             Matcher matcher = pattern.matcher(result0);
 
@@ -112,6 +112,7 @@ public class Listener {
 
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
+                    return "OGNL execute failed";
                 }
             }
 

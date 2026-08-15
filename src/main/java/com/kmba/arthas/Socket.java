@@ -69,7 +69,12 @@ public class Socket {
             for (int i = 0; i < socketCnt; i++) {
                 String cmd = String.format(unloadSocketByVmtool, i, urlName , className ,urlName);
 
-                logger.info("/socket/unload: {}" ,wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/socket/unload: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
             return "success";
         } catch (Exception e){

@@ -69,7 +69,12 @@ public class Upgrade {
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadUpgradeByVmtool, i ,upgradeName);
 
-                logger.info("/upgrade/unload: {}" ,wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/upgrade/unload: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
             return "success";
         } catch (Exception e){

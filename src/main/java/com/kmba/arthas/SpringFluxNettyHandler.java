@@ -35,9 +35,10 @@ public class SpringFluxNettyHandler {
      *     @String[reactor.netty.ReactorNetty$$Lambda$340/1681094402],
      *     @String[com.flux.evilNettyHandler],
      * ]
+     * unload 需要指定 classLoader，通过 Util.getClassLoader() 获取后再指定
      */
-    private String unloadSFNHByVmtool = "vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName==\"%s\")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'";
-
+//    private String unloadSFNHByVmtool = "vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express 'instances.{(#this.doOnChannelInit.getClass.getName==\"%s\")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'";
+    private String unloadSFNHByVmtool = "vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express '#hsc=instances[%s],{(#hsc.doOnChannelInit.getClass.getName==\"%s\")?(#hsc.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},#hsc.doOnChannelInit'";
     @RequestMapping("/list")
     public JSONArray list() {
         try {
@@ -72,15 +73,19 @@ public class SpringFluxNettyHandler {
 
             OGNLUtils.setStrictModeClose();
 
-            String cmd = String.format(unloadSFNHByVmtool ,className);
+            int httpServerConfigCnt = Util.getHttpServerConfigCnt();
+            for (int i = 0; i < httpServerConfigCnt; i++) {
+                // 每个实例都需要动态获取 classLoader 后指定
+                String classLoader = Util.getClassLoader("reactor.netty.http.server.HttpServerConfig", i, wrapper);
+                if (classLoader == null) continue;
+                String cmd = String.format(unloadSFNHByVmtool, classLoader, i, className);
 
-            List<String> result = wrapper.runCmd(cmd);
-
-            logger.info("/SpringFluxNettyHandler/unload: {}" , result);
-
-            if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                logger.error(result.get(0));
-                return "failed";
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/SpringFluxNettyHandler/unload: {}" , result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
 
             return "success";

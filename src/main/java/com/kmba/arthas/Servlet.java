@@ -94,6 +94,7 @@ public class Servlet {
                 logger.info("/servlet/unload: {}" ,result);
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
+                    return "OGNL execute failed";
                 }
             }
 

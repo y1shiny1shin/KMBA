@@ -649,6 +649,7 @@ const ui = {
             if (u.params) u.params(qs, row);
             const res = (await apiText(url + '?' + qs.toString())).trim();
             if (res === 'success') dock.update(op, { level:'ok', time: nowTime(), msg:'卸载成功: ' + label });
+            else if (res === 'OGNL execute failed') dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败(OGNL 执行失败): ' + label });
             else dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败: ' + label + '\n' + res });
             await ui.refreshModule(moduleId);
             return;
@@ -677,6 +678,7 @@ const ui = {
         }
         const res = (await apiText(url + '?' + qs.toString())).trim();
         if (res === 'success') dock.update(op, { level:'ok', time: nowTime(), msg:'卸载成功: ' + label });
+        else if (res === 'OGNL execute failed') dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败(OGNL 执行失败): ' + label });
         else dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败: ' + label + '\n' + res });
         await ui.refreshModule(moduleId);
     },

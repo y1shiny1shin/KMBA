@@ -28,7 +28,7 @@ import static com.kmba.Utils.Dict.getTomcatSiteCnt;
 @RequestMapping("/filter")
 public class Filter {
     /**
-     * filter 查询与卸载优化，最好是通过filterName卸载
+     * filter 查询与卸载优化，最好是通过filterName卸载（已做）
      */
 //    private String listFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#tomcatContext=instances[%s].filterMaps.array'";
     private String listFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+\":\"+#this.filterName+\":\"+#filterConfigs[#a].filterClass):(null)}'";
@@ -92,7 +92,12 @@ public class Filter {
             int tomcatSiteCnt = getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadFilterByVmtool , i , filterName);
-                logger.info("/filter/unload: {}" ,wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/filter/unload: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
             return "success";
 

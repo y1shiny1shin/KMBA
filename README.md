@@ -164,6 +164,12 @@ start.bat cli 54203 -u servlet /evil
 
 本工具仅限**授权的安全运维和应急响应**场景使用。请仅在您拥有或被明确授权分析的系统中使用。作者不承担任何滥用导致的后果。
 
+## 已通过的测试环境
+Nacos 2.2.2
+XXL-JOB 2.1.2
+fastjson 1.2.24
+Ruoyi 3.4.0
+
 ## 感谢
 
 - [Arthas — 阿里巴巴 Java 诊断工具](https://arthas.aliyun.com/)

@@ -25,7 +25,7 @@ public class OGNLUtils {
             if (hashResult.size() > 0) {
                 String result = hashResult.get(0);
 
-                Pattern pattern = Pattern.compile("com\\.taobao\\.arthas\\.agent\\.ArthasClassloader\\@([a-zA-Z0-9]{8})");
+                Pattern pattern = Pattern.compile("com\\.taobao\\.arthas\\.agent\\.ArthasClassloader\\@([a-zA-Z0-9]{1,8})");
                 Matcher matcher = pattern.matcher(result);
                 if (matcher.find()) {
                     arthasHash = matcher.group(1);

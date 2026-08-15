@@ -269,6 +269,20 @@ public class CompHandler {
             return;
         }
 
+        // 表格标题
+        String[] headers = headersOf(c);
+        if (headers != null) {
+            StringBuilder sb = new StringBuilder("  ");
+            for (int i = 0; i < headers.length; i++) {
+                if (i < headers.length - 1) {
+                    sb.append(String.format("[+] %-24s", headers[i]));
+                } else {
+                    sb.append(String.format("[+] %s", headers[i]));
+                }
+            }
+            System.out.println(sb.toString());
+        }
+
         for (int i = 0; i < arr.size(); i++) {
             Object item = arr.get(i);
             if (item instanceof JSONObject) {
@@ -276,6 +290,31 @@ public class CompHandler {
             } else {
                 System.out.println("  " + item);
             }
+        }
+    }
+
+    /**
+     * 每个组件表格的标题，按组件名返回对应的列名
+     */
+    private static String[] headersOf(Comp c) {
+        switch (c.name) {
+            case "servlet":                  return new String[]{"URLPattern", "className"};
+            case "filter":                   return new String[]{"URLPattern", "filterName", "className"};
+            case "listener":                 return new String[]{"className"};
+            case "springMvcController":      return new String[]{"URLPattern", "className"};
+            case "springMvcInterceptor":     return new String[]{"interceptorName", "className"};
+            case "springFluxWebFilter":      return new String[]{"filterName", "className"};
+            case "springFluxNettyHandler":   return new String[]{"className"};
+            case "springFluxHandlerMethod":  return new String[]{"URLPattern", "className"};
+            case "springFluxHandlerFunction":return new String[]{"URLPattern", "className"};
+            case "valve":                    return new String[]{"className"};
+            case "proxyValve":               return new String[]{"type", "className"};
+            case "timer":                    return new String[]{"className"};
+            case "thread":                   return new String[]{"threadName", "className"};
+            case "socket":                   return new String[]{"urlName", "className"};
+            case "executor":                 return new String[]{"className"};
+            case "upgrade":                  return new String[]{"upgradeName", "className"};
+            default:                         return null;
         }
     }
 
@@ -290,16 +329,16 @@ public class CompHandler {
         }
         // proxyValve：first / basic
         if (obj.containsKey("first")) {
-            System.out.println("  first  -> " + obj.getString("first"));
+            System.out.printf("  %-28s %s\n", "first", obj.getString("first"));
             return;
         }
         if (obj.containsKey("basic")) {
-            System.out.println("  basic  -> " + obj.getString("basic"));
+            System.out.printf("  %-28s %s\n", "basic", obj.getString("basic"));
             return;
         }
         // 其他：单键值对 {标识: 类名}
         for (String k : obj.keySet()) {
-            System.out.printf("  %-50s %s\n", k, obj.getString(k));
+            System.out.printf("  %-28s %s\n", k, obj.getString(k));
         }
     }
 

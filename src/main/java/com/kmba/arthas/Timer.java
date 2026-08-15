@@ -78,7 +78,12 @@ public class Timer {
             for (int i=0; i<timerCnt; i++){
                 String cmd = String.format(unloadTimerByVmtoolGently, i ,className);
 
-                logger.info("/timer/unload: {}" ,wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/timer/unload: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
             return "success";
         } catch (Exception e){
@@ -97,7 +102,12 @@ public class Timer {
             for (int i=0; i<timerCnt; i++){
                 String cmd = String.format(unloadTimerByVmtoolForcly, i ,className);
 
-                logger.info("/timer/unloadForce: "+wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/timer/unloadForce: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
             return "success";
 

@@ -30,13 +30,16 @@ public class ProxyValve {
 //    private String getFirstByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[%s].getPipeline.first.class.name'";
 //    private String checkBasicByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[%s].getPipeline,#name=#pip.basic.class.name,#name.contains(\"Proxy\")'";
 
-    private String clearFirstByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[%s].getPipeline,#firstField=#pip.class.getDeclaredField(\"first\"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals(\"%s\"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):(\"false\")}):(\"failed\")}'";
-    private String clearBasicByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[%s].getPipeline,#basicField=#pip.class.getDeclaredField(\"basic\"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),{(#basic.class.name.equals(\"%s\"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#basic),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#basicField.set(#pip,#value)):(\"false\")}):(\"failed\")}'";
+    /**
+     * 必须指定classLoader，通过 Util.getClassLoader() 获取后再指定
+     */
+    private String clearFirstByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoader %s --express '#pip=instances[%s].getPipeline,#firstField=#pip.class.getDeclaredField(\"first\"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals(\"%s\"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):(\"false\")}):(\"failed\")}'";
+    private String clearBasicByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoader %s --express '#pip=instances[%s].getPipeline,#basicField=#pip.class.getDeclaredField(\"basic\"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),{(#basic.class.name.equals(\"%s\"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#basic),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#basicField.set(#pip,#value)):(\"false\")}):(\"failed\")}'";
     /*@ArrayList[
     @String[first:org.apache.catalina.authenticator.NonLoginAuthenticator],
     @String[basic:org.apache.catalina.core.StandardContextValve],
             ]*/
-    private String getFirstAndBasicByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[%s].getPipeline,#basicField=#pip.class.getDeclaredField(\"basic\"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),#firstField=#pip.class.getDeclaredField(\"first\"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#x={(#first!=null)?{\"first\"+\":\"+#first.class.name,\"basic\"+\":\"+#basic.class.name}:{\"basic\"+\":\"+#basic.class.name}},#x[0]'";
+    private String getFirstAndBasicByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoader %s --express '#pip=instances[%s].getPipeline,#basicField=#pip.class.getDeclaredField(\"basic\"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),#firstField=#pip.class.getDeclaredField(\"first\"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#x={(#first!=null)?{\"first\"+\":\"+#first.class.name,\"basic\"+\":\"+#basic.class.name}:{\"basic\"+\":\"+#basic.class.name}},#x[0]'";
 
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
@@ -51,8 +54,6 @@ public class ProxyValve {
 
             OGNLUtils.setStrictModeClose();
 
-
-
 //            @ArrayList[
 //                @String[first:org.apache.catalina.authenticator.NonLoginAuthenticator],
 //                @String[basic:org.apache.catalina.core.StandardContextValve],
@@ -63,7 +64,21 @@ public class ProxyValve {
             String basicRegex = "@String\\[basic\\:([0-9a-zA-Z.$_]+)\\]";
             Pattern basicPattern = Pattern.compile(basicRegex);
 
-            String resultAll = Util.getListResult(Dict.getTomcatSiteCnt() ,getFirstAndBasicByVmtool);
+            // 每个 StandardContext 都需要动态获取 classLoader 后指定
+            int tomcatSiteCnt = Dict.getTomcatSiteCnt();
+            List<String> result = new ArrayList<>();
+            for (int i = 0; i < tomcatSiteCnt; i++) {
+                String classLoader = Util.getClassLoader("org.apache.catalina.core.StandardContext", i, wrapper);
+                if (classLoader == null) continue;
+                String cmd = String.format(getFirstAndBasicByVmtool, classLoader, i);
+                List<String> result0 = wrapper.runCmd(cmd);
+                if (result0 != null) {
+                    for (String s : result0)
+                        if (!(s == null || s.isEmpty()))
+                            result.add(s);
+                }
+            }
+            String resultAll = String.join("" ,result);
 
             Matcher firstMatcher = firstPattern.matcher(resultAll);
             Matcher basicMatcher = basicPattern.matcher(resultAll);
@@ -106,8 +121,15 @@ public class ProxyValve {
 
             int tomcatSiteCnt = Dict.getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
-                String cmd = String.format(clearFirstByVmtool, i , className);
-                logger.info("/proxyValve/unloadFirst: {}" ,wrapper.runCmd(cmd));
+                String classLoader = Util.getClassLoader("org.apache.catalina.core.StandardContext", i, wrapper);
+                if (classLoader == null) continue;
+                String cmd = String.format(clearFirstByVmtool, classLoader, i , className);
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/proxyValve/unloadFirst: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
             return "success";
         } catch (Exception e){
@@ -126,8 +148,15 @@ public class ProxyValve {
             OGNLUtils.setStrictModeClose();
             int tomcatSiteCnt = Dict.getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
-                String cmd = String.format(clearBasicByVmtool, i , className);
-                logger.info("/proxyValve/unloadBasic: {}" ,wrapper.runCmd(cmd));
+                String classLoader = Util.getClassLoader("org.apache.catalina.core.StandardContext", i, wrapper);
+                if (classLoader == null) continue;
+                String cmd = String.format(clearBasicByVmtool, classLoader, i , className);
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/proxyValve/unloadBasic: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
             return "success";
         } catch (Exception e){

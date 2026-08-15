@@ -42,10 +42,14 @@ public class SpringFluxHandlerMethod {
      * vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'
      * list：
      * vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#maps.getHandlerMethods'
+     *
+     *
+     * 需要优化（已做）
+     * [@UnmodifiableMap[, @RequestMappingInfo[{ /, produces [application/json;charset=UTF-8]}]:@HandlerMethod[lab.VulnController#index(String)],, @RequestMappingInfo[{[GET, POST] /shell-flux-method2}]:@HandlerMethod[MemshellFluxHandlerMethod#simple()],, @RequestMappingInfo[{[GET, POST] /shell-flux-method}]:@HandlerMethod[MemshellFluxHandlerMethod#handle(ServerWebExchange)],, ]]
      */
 
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
-    private String listSFHMByVmtool = "vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[%s].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains(\"RequestMappingHandlerMapping\"))?(#maps=#this):(null)},#maps.getHandlerMethods'";
+    private String listSFHMByVmtool = "vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[%s].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains(\"RequestMappingHandlerMapping\"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#tmpkey=#this,#pattern=#tmpkey.patternsCondition.patterns.toString(),#pattern+\":\"+#ms[#tmpkey]}'";
     private String unloadSFHMByVmtool = "vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express " +
             "'#maps,#registry=instances[%s].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings()" +
             ".{(#this.class.getName.contains(\"RequestMappingHandlerMapping\"))?(#maps=#this):(null)}," +
@@ -57,8 +61,15 @@ public class SpringFluxHandlerMethod {
             JSONArray jsonArray = new JSONArray();
             int nettyServerCnt = Util.getNettyServerCnt();
 
+            /**
+             * @ArrayList[
+             *     @String[[/]:lab.VulnController#index(String)],
+             *     @String[[/shell-flux-method2]:MemshellFluxHandlerMethod#simple()],
+             *     @String[[/shell-flux-method]:MemshellFluxHandlerMethod#handle(ServerWebExchange)],
+             * ]
+             */
             String resultAll = Util.getListResult(1 ,listSFHMByVmtool);
-            String regex = "\\@RequestMappingInfo\\[\\{ (.*?)\\}\\]:@HandlerMethod\\[([0-9a-zA-Z.$_]+)#(.*?)\\]";
+            String regex = "\\@String\\[\\[(.*?)\\]:([0-9a-zA-Z.$_]+)#(.*?)\\]";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -98,6 +109,7 @@ public class SpringFluxHandlerMethod {
                 logger.info("/SpringFluxHandlerMethod/unload: {}" , result);
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
+                    return "OGNL execute failed";
                 }
             }
 

@@ -21,9 +21,12 @@ public class Util {
     public static String getSpringCntExpress = "vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances.length'";
     public static String getSpringFluxCntExpress = "vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances.length'";
     public static String getNettyServerCntExpress = "vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express 'instances.length'";
+    public static String getHttpServerConfigCntExpress = "vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.length'";
 
     private static final Pattern INTEGER_PATTERN =
             Pattern.compile("@Integer\\[(\\d+)]");
+    // 获取实例的 classLoader 类名，获取后再通过 -classLoader 指定
+    private static final String getClassLoaderByVmtool = "vmtool --action getInstances --className %s --express 'instances[%s].getClass.getClassLoader.getClass.name'";
 
     private static int executeCountCommand(String command, String metricName) {
         try {
@@ -80,6 +83,10 @@ public class Util {
         return executeCountCommand(getNettyServerCntExpress ,"NettyServerCnt");
     }
 
+    public static int getHttpServerConfigCnt() {
+        return executeCountCommand(getHttpServerConfigCntExpress ,"HttpServerConfigCnt");
+    }
+
 
     /**
      * 预热验证：建立 WebSocket 连接并发送一条命令，确认 Arthas 真正可用。
@@ -121,7 +128,35 @@ public class Util {
                 if (!(s==null || s.isEmpty()))
                     result.add(s);
         }
-
+        logger.info("Util.getListResult: {}" ,result);
         return String.join("" ,result);
+    }
+
+    /**
+     * 动态获取指定类实例的 classLoader 类名
+     * 不同的实例可能由不同的 classLoader 加载，为了稳定性，
+     * 每次执行命令前都要先获取，再通过 -classLoader 参数指定
+     *
+     * @param className 目标类全限定名（vmtool 的 --className）
+     * @param index     实例索引
+     * @param wrapper   Arthas WebSocket 封装
+     * @return classLoader 类名，获取失败返回 null
+     */
+    public static String getClassLoader(String className, int index, ArthasWsWrapper wrapper) {
+        try {
+            String cmd = String.format(getClassLoaderByVmtool, className, index);
+            List<String> result = wrapper.runCmd(cmd);
+            if (result == null || result.isEmpty()) return null;
+
+            // @String[org.springframework.boot.loader.LaunchedURLClassLoader]
+            String regex = "@String\\[([0-9a-zA-Z.$_]+)\\]";
+            Matcher matcher = Pattern.compile(regex).matcher(result.get(0));
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return null;
     }
 }

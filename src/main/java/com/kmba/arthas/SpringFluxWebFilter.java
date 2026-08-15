@@ -32,13 +32,17 @@ public class SpringFluxWebFilter {
 //    @UnmodifiableRandomAccessList[
 //    @EvilFilter[com.flux.EvilFilter@1ecd5568],
 //            ]
+    /**
+     * unload 需要指定classloader（已做）
+     */
     private String listSFWFbyVmtool = "vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances[%s],#chain=#handler.chain,#chain.allFilters'";
     /**
      * 难点在于修改final属性的变量，本来打算用构造器新建DefaultWebFilterChain的来做替换的
      * 但是getInterfaces方法返回的是class[]，还需要遍历比较麻烦，干脆直接new了，正好都是一个classLoader，可以new
      * 大致逻辑和Executor差不多，都是需要替换
+     * unload 需要指定 classLoader，通过 Util.getClassLoader() 获取后再指定
      */
-    private String unloadSFWFbyVmtool = "vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances[%s],#chain=#handler.chain,#oldFilters=#chain.getFilters(),#newFilters=new java.util.ArrayList(),#oldFilters.{(#this.class.getName()!=\"%s\")?(#tmp=#this,#newFilters.add(#tmp)):(null)},#newChain=new org.springframework.web.server.handler.DefaultWebFilterChain(#chain.getHandler(),#newFilters),#f=#handler.getClass().getDeclaredField(\"chain\"),#f.setAccessible(true),#mod=#f.getClass.getDeclaredField(\"modifiers\"),#mod.setAccessible(true),#mod.setInt(#f,#f.getModifiers()&~@java.lang.reflect.Modifier@FINAL),#f.set(#handler,#newChain),#mod.setInt(#f,#f.getModifiers()&@java.lang.reflect.Modifier@FINAL)'";
+    private String unloadSFWFbyVmtool = "vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler -classLoader %s --express '#handler=instances[%s],#chain=#handler.chain,#oldFilters=#chain.getFilters(),#newFilters=new java.util.ArrayList(),#oldFilters.{(#this.class.getName()!=\"%s\")?(#tmp=#this,#newFilters.add(#tmp)):(null)},#newChain=new org.springframework.web.server.handler.DefaultWebFilterChain(#chain.getHandler(),#newFilters),#f=#handler.getClass().getDeclaredField(\"chain\"),#f.setAccessible(true),#mod=#f.getClass.getDeclaredField(\"modifiers\"),#mod.setAccessible(true),#mod.setInt(#f,#f.getModifiers()&~@java.lang.reflect.Modifier@FINAL),#f.set(#handler,#newChain),#mod.setInt(#f,#f.getModifiers()&@java.lang.reflect.Modifier@FINAL)'";
 
     @RequestMapping("/list")
     public JSONArray list() {
@@ -47,7 +51,7 @@ public class SpringFluxWebFilter {
             JSONArray jsonArray = new JSONArray();
 
             String resultAll = Util.getListResult(springFluxCnt ,listSFWFbyVmtool);
-            String regex = "@([0-9a-zA-Z.$_]+)\\[([0-9a-zA-Z.$_]+)@[0-9a-f]{8}\\]";
+            String regex = "@([0-9a-zA-Z.$_]+)\\[([0-9a-zA-Z.$_]+)@([0-9a-f]+)\\]";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -78,13 +82,16 @@ public class SpringFluxWebFilter {
             OGNLUtils.setStrictModeClose();
 
             for (int i = 0 ; i<springFluxCnt ;i++){
-                String cmd = String.format(unloadSFWFbyVmtool ,i ,className);
+                // 每个实例都需要动态获取 classLoader 后指定
+                String classLoader = Util.getClassLoader("org.springframework.web.server.handler.FilteringWebHandler", i, wrapper);
+                if (classLoader == null) continue;
+                String cmd = String.format(unloadSFWFbyVmtool, classLoader, i ,className);
 
                 List<String> result = wrapper.runCmd(cmd);
                 logger.info("/SpringFluxWebFilter/unload: {}" , result);
                 if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
                     logger.error(result.get(0));
-                    return "failed";
+                    return "OGNL execute failed";
                 }
             }
             return "success";

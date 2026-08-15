@@ -28,8 +28,29 @@ import static com.kmba.Utils.Dict.*;
 @RestController
 @RequestMapping("/valve")
 public class Valve {
-    private String listValveByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].pipeline.getValves()'";
-    private String unloadValveByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals(\"%s\")?(#evil=#this):null},#ctx.pipeline.removeValve(#evil)'";
+    /**
+     * 正则待优化，无法匹配到某些特殊情况下的类名
+     * @Valve[][
+     *     @$Proxy56[NonLoginAuthenticator[StandardEngine[Tomcat].StandardHost[localhost].TomcatEmbeddedContext[]]],
+     *     @MemshellValve[MemshellValve@68efcab5],
+     *     @StandardContextValve[StandardContextValve[StandardEngine[Tomcat].StandardHost[localhost].TomcatEmbeddedContext[]]],
+     * ]
+     *
+     * @Valve[][
+     * @NonLoginAuthenticator[org.apache.catalina.authenticator.NonLoginAuthenticator[/servletDemo_war_exploded]],
+     * @StandardContextValve[org.apache.catalina.core.StandardContextValve[/servletDemo_war_exploded]],
+     * ]
+     */
+    /**
+     * 优化过后，在Arthas层直接输出className
+     * @ArrayList[
+     *     @String[com.sun.proxy.$Proxy56],
+     *     @String[MemshellValve],
+     *     @String[org.apache.catalina.core.StandardContextValve],
+     * ]
+     */
+    private String listValveByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].pipeline.getValves().{#this.getClass.name}'";
+    private String unloadValveByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals(\"%s\")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     /**
@@ -43,7 +64,7 @@ public class Valve {
 
             String resultAll = Util.getListResult(Dict.getTomcatSiteCnt() ,listValveByVmtool);
 
-            String regex = "\\[([0-9a-zA-Z.$_]+)\\[";
+            String regex = "\\[([0-9a-zA-Z.$_]+)\\]";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -71,7 +92,13 @@ public class Valve {
             int tomcatSiteCnt = Dict.getTomcatSiteCnt();
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadValveByVmtool, i , className);
-                logger.info("/valve/unload: {}" ,wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/valve/unload: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
+
             }
             return "success";
         } catch (Exception e){

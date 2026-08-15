@@ -52,7 +52,7 @@ public class Executor {
 
             String resultAll = JSONArray.toJSONString(result);
 
-            String regex = "\\[([0-9a-zA-Z.$_]+)\\@([0-9a-f]{8})\\[";
+            String regex = "\\[([0-9a-zA-Z.$_]+)\\@([0-9a-f]{1,8})\\[";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -79,7 +79,12 @@ public class Executor {
             for (int i=0 ;i<cnt ;i++){
                 String cmd = String.format(unloadExecutorByVmtoolBrutly ,i ,className);
 
-                logger.info("/executor/unloadBrutly: {}" ,wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/executor/unloadBrutly: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
 
             return "success";
@@ -100,7 +105,12 @@ public class Executor {
             for (int i=0 ;i<cnt ;i++){
                 String cmd = String.format(unloadExecutorByVmtoolGently ,i ,className);
 
-                logger.info("/executor/unloadGently: "+wrapper.runCmd(cmd));
+                List<String> result = wrapper.runCmd(cmd);
+                logger.info("/executor/unloadGently: {}" ,result);
+                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+                    logger.error(result.get(0));
+                    return "OGNL execute failed";
+                }
             }
 
             return "success";

@@ -1,8 +1,11 @@
 ## 更新日志
 
-### v0.4.2
-- 做完`springFlux`四种类型内存马（来源[MemshellParty-SpringWebFlux](https://github.com/ReaJason/MemShellParty/tree/master/generator/src/main/java/com/reajason/javaweb/memshell/injector/springwebflux)）的支持
-- 重构部分代码
+### v0.5
+- 优化报错逻辑
+- 通过Nacos 2.2.2、XXL-JOB 2.1.2、fastjson 1.2.24、Ruoyi 3.4.0四种环境的测试
+- 优化proxyValve、classLoader逻辑，提升稳定性
+- 美化cli部分，现在更好看了
+- 主要针对memshell-party做适配
 
 ---
 
