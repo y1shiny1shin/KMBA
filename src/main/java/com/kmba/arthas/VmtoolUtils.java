@@ -20,8 +20,8 @@ public class VmtoolUtils {
      */
     static Logger logger = LoggerFactory.getLogger(VmtoolUtils.class.getName());
     // CLH -> ClassLoaderHash
-//    public static String vmtoolNoCLH = "vmtool --action getInstances --className %s";
-    public static String vmtoolWithCLH = "vmtool --action getInstances --className %s -c %s --express 'instances[0]'";
+//    public static String vmtoolNoCLH = "vmtool -l -1 --action getInstances --className %s";
+    public static String vmtoolWithCLH = "vmtool -l -1 --action getInstances --className %s -c %s --express 'instances[0]'";
     @RequestMapping("/get")
     public JSONObject get(@RequestParam String className , @RequestParam(required = false) String classLoaderHash) {
         logger.info("/vmtool/get: className={}, hash={}", className, classLoaderHash);

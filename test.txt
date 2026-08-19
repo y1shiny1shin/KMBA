@@ -21,143 +21,143 @@
 
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].applicationEventListenersList'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].applicationEventListenersList'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#old=instances[0].applicationEventListenersList,#newList=new java.util.concurrent.CopyOnWriteArrayList(#old.{? !#this.getClass().getName().contains("com.InjectListener$1EvilListener")}),instances[0].applicationEventListenersList=#newList'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#old=instances[0].applicationEventListenersList,#newList=new java.util.concurrent.CopyOnWriteArrayList(#old.{? !#this.getClass().getName().contains("com.InjectListener$1EvilListener")}),instances[0].applicationEventListenersList=#newList'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].servletMappings'
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#tomcatContext=instances[0],#name="/fasssmo.ico",#evilMap=#tomcatContext.findFilterMaps()[0],#tomcatContext.removeFilterMap(#evilMap),#evilDefs=#tomcatContext.findFilterDefs()'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].servletMappings'
 
 
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#m=#maps.{? #this.getURLPatterns()[0].equals(#target)}[0],#ctx.removeFilterMap(#m)'
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances.length > 0 ? (#ctx=instances[0], #target="/evil", #ctx.findFilterMaps().{? #this.getURLPatterns() != null && #this.getURLPatterns()[0].equals(#target)}'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#m=#maps.{? #this.getURLPatterns()[0].equals(#target)},#m.size(),#ctx.removeFilterMap(#m)'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#tomcatContext=instances[0],#name="/fasssmo.ico",#evilMap=#tomcatContext.findFilterMaps()[0],#tomcatContext.removeFilterMap(#evilMap),#evilDefs=#tomcatContext.findFilterDefs()'
 
 
-[arthas@51107]$ vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#m=#maps.{? #this.getURLPatterns()[0].equals(#target)},#m.size() > 0 ? (#m.{#ctx.removeFilterMap(#this)}, "Removed " + #m.size() + " filter(s)") : "No match found"'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#m=#maps.{? #this.getURLPatterns()[0].equals(#target)}[0],#ctx.removeFilterMap(#m)'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#m=#maps.{? #this.getURLPatterns()[0].equals(#target)},#m.size()>0 ? (#m.{#ctx.removeFilterMap(#this)}, "Success: " + #m.size() + " removed") : "No Match"'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances.length > 0 ? (#ctx=instances[0], #target="/evil", #ctx.findFilterMaps().{? #this.getURLPatterns() != null && #this.getURLPatterns()[0].equals(#target)}'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '(#inst=instances[0], #target="/evil", #maps=#inst.findFilterMaps(), #m=#maps.{? #this.getURLPatterns()[0].equals(#target)}, #m.size()>0 ? #m.{#inst.removeFilterMap(#this)} : null), "Operation Complete"'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#m=#maps.{? #this.getURLPatterns()[0].equals(#target)},#m.size(),#ctx.removeFilterMap(#m)'
+
+
+[arthas@51107]$ vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#m=#maps.{? #this.getURLPatterns()[0].equals(#target)},#m.size() > 0 ? (#m.{#ctx.removeFilterMap(#this)}, "Removed " + #m.size() + " filter(s)") : "No match found"'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#m=#maps.{? #this.getURLPatterns()[0].equals(#target)},#m.size()>0 ? (#m.{#ctx.removeFilterMap(#this)}, "Success: " + #m.size() + " removed") : "No Match"'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '(#inst=instances[0], #target="/evil", #maps=#inst.findFilterMaps(), #m=#maps.{? #this.getURLPatterns()[0].equals(#target)}, #m.size()>0 ? #m.{#inst.removeFilterMap(#this)} : null), "Operation Complete"'
 
 #m.size() > 0 ? (#m.{#ctx.removeFilterMap(#this)}, "Removed " + #m.size() + " filter(s)") : "No match found"
 
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#count=0,#maps.{(#this.getURLPatterns()[0].equals(#target))?(#ctx.removeFilterMap(#this), #count=#count+1): null}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#maps=#ctx.findFilterMaps(),#count=0,#maps.{(#this.getURLPatterns()[0].equals(#target))?(#ctx.removeFilterMap(#this), #count=#count+1): null}'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#found=false,@java.util.Arrays@asList(#ctx.findFilterMaps()).stream().filter(lambda -> lambda.getURLPatterns()[0].equals(#target)).forEach(lambda -> {#ctx.removeFilterMap(lambda), #found=true}),#found ? "Filter removed" : "No match found"'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#target="/evil",#found=false,@java.util.Arrays@asList(#ctx.findFilterMaps()).stream().filter(lambda -> lambda.getURLPatterns()[0].equals(#target)).forEach(lambda -> {#ctx.removeFilterMap(lambda), #found=true}),#found ? "Filter removed" : "No match found"'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("/evil")},#ms.{#ctx.removeFilterMap(#ms[#c]),#c=#c+1}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("/evil")},#ms.{#ctx.removeFilterMap(#ms[#c]),#c=#c+1}'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#valves=instances[0].pipeline.getValves()'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#valves=instances[0].pipeline.getValves()'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("com.InjectValve$1")?(#evil=#this):null},#ctx.pipeline.removeValve(#evil)'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("com.InjectValve$1")?(#evil=#this):null},#ctx.pipeline.removeValve(#evil)'
 
 
 
-vmtool --action getInstances --className java.util.Timer --express '#timers=instances[1].queue.queue,#i=0,#existTimer=#timers.{#this==null?(123):#this.getClass().getName()}'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[1].queue.queue,#i=0,#existTimer=#timers.{#this==null?(123):#this.getClass().getName()}'
 
 
-vmtool --action getInstances --className java.util.Timer --express '#timers=instances[1].queue.queue,#i=0,#existTimer=#timers.{#this!=null?#this.getClass().getName():null}.{?#this!=null}'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[1].queue.queue,#i=0,#existTimer=#timers.{#this!=null?#this.getClass().getName():null}.{?#this!=null}'
 
 
-vmtool --action getInstances --className java.util.Timer --express '#timers=instances[1].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("com.InjectTimer$1"),#this.cancel()):null}'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[1].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("com.InjectTimer$1"),#this.cancel()):null}'
 
 
-vmtool --action getInstances --className java.util.Timer --express '#timers=instances[1].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("com.InjectTimer$1"),#this.cancel()):null}'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[1].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("com.InjectTimer$1"),#this.cancel()):null}'
 
 
 
-vmtool --action getInstances --className java.util.Timer --express 'instances[1].queue.queue'
+vmtool -l -1 --action getInstances --className java.util.Timer --express 'instances[1].queue.queue'
 
-vmtool --action getInstances --className java.util.Timer --express '#timer=instances[0],#task=#timer.queue.queue[1],#task.getClass().getName() + "status: " + #task.scheduledExecutionTime()'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timer=instances[0],#task=#timer.queue.queue[1],#task.getClass().getName() + "status: " + #task.scheduledExecutionTime()'
 
-vmtool --action getInstances --className java.util.Timer --express '#timer=instances[3],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals("com.InjectTimer$1")?#timer.thread.stop():null}.{?#this!=null}'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timer=instances[3],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals("com.InjectTimer$1")?#timer.thread.stop():null}.{?#this!=null}'
 
-vmtool --action getInstances --className java.util.Timer --express '#timer=instances[0],#queues=#timer.queue.queue'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timer=instances[0],#queues=#timer.queue.queue'
 
-vmtool --action getInstances --className java.util.Timer --express '#timers=instances[3].queue.queue,#existTimer=#timers.{#this!=null?#this.getClass().getName():null}.{?#this!=null}'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[3].queue.queue,#existTimer=#timers.{#this!=null?#this.getClass().getName():null}.{?#this!=null}'
 
 
-vmtool --action getInstances --className java.util.Timer --express '#timer=instances[0],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals("com.InjectTimer$1")?#timer.thread.interrupt():null}.{?#this!=null}'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timer=instances[0],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals("com.InjectTimer$1")?#timer.thread.interrupt():null}.{?#this!=null}'
 
 
-vmtool --action getInstances --className java.util.Timer --express '#timer=instances[0],#queues=#timer.queue.queue'
-vmtool --action getInstances --className java.util.Timer --express '#timer=instances[0],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals("com.InjectTimer$1")?(#timer.thread.currentThread().interrupt(),"success"):null}.{?#this!=null}'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timer=instances[0],#queues=#timer.queue.queue'
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timer=instances[0],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals("com.InjectTimer$1")?(#timer.thread.currentThread().interrupt(),"success"):null}.{?#this!=null}'
 
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[2],#className=#thread.target.getClass.getName(),#threadName=#thread.name,#threadName+":"+#className'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[2],#className=#thread.target.getClass.getName(),#threadName=#thread.name,#threadName+":"+#className'
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[2],#className=#thread.target,#threadName=#thread.name,{#threadName="GC demo2"&&#className="com.InjectThread$1"?#thread.stop():null}'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[2],#className=#thread.target,#threadName=#thread.name,{#threadName="GC demo2"&&#className="com.InjectThread$1"?#thread.stop():null}'
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[5],#className=#thread.target,#threadName=#thread.name,{#threadName="GC demo2"&&#className="com.InjectThread$1"?#thread.stop():null}'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[5],#className=#thread.target,#threadName=#thread.name,{#threadName="GC demo2"&&#className="com.InjectThread$1"?#thread.stop():null}'
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[5],#className=#thread.target.getClass().getName(),#threadName=#thread.name,{#className.equals("com.InjectThread$1")&&#threadName.equals("GC demo2")?"success":null}'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[5],#className=#thread.target.getClass().getName(),#threadName=#thread.name,{#className.equals("com.InjectThread$1")&&#threadName.equals("GC demo2")?"success":null}'
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[5]'
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[3],#className=#thread.target.getClass().getName(),#threadName=#thread.name,{#className.equals("com.InjectThread$1")&&#threadName.equals("GC demo2")?#thread.stop():null}'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[5]'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[3],#className=#thread.target.getClass().getName(),#threadName=#thread.name,{#className.equals("com.InjectThread$1")&&#threadName.equals("GC demo2")?#thread.stop():null}'
 
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[0].getThreadGroup()'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[0].getThreadGroup()'
 
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[0].currentThread().getThreadGroup()'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[0].currentThread().getThreadGroup()'
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances'
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express 'instances[0].configExactMatchMap'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express 'instances[0].configExactMatchMap'
 
- vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#name=#container.configExactMatchMap.keySet().toArray()[0],#className=#container.configExactMatchMap[#name].config.endpointClass.name,#name+":"+#className'
+ vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#name=#container.configExactMatchMap.keySet().toArray()[0],#className=#container.configExactMatchMap[#name].config.endpointClass.name,#name+":"+#className'
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#map=#container.configExactMatchMap,#map.{#this.keySet().toArray().set}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#map=#container.configExactMatchMap,#map.{#this.keySet().toArray().set}'
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/ws1"],{#className="com.MyWebSocketEndpoint"?#container.remove("/ws1"):null}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/ws1"],{#className="com.MyWebSocketEndpoint"?#container.remove("/ws1"):null}'
 
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0].configExactMatchMap'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0].configExactMatchMap'
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/ws1"].config.endpointClass.name'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/ws1"].config.endpointClass.name'
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/ws"].config.endpointClass.name,{#className.equals("com.MyWebSocketEndpoint")?#container.configExactMatchMap.remove("/ws"):null}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/ws"].config.endpointClass.name,{#className.equals("com.MyWebSocketEndpoint")?#container.configExactMatchMap.remove("/ws"):null}'
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+":"+#container.configExactMatchMap[#name].config.endpointClass.name}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+":"+#container.configExactMatchMap[#name].config.endpointClass.name}'
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#className=#container.configExactMatchMap["%s"],{#className="%s"?#container.remove("%s"):null}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#className=#container.configExactMatchMap["%s"],{#className="%s"?#container.remove("%s"):null}'
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+":"+#container.configExactMatchMap[#name].config.endpointClass.name}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+":"+#container.configExactMatchMap[#name].config.endpointClass.name}'
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#className=#container.configExactMatchMap["/ws1"].config.endpointClass.name,#className,{#className.equals("com.MyWebSocketEndpoint")?#container.configExactMatchMap.remove("/ws1"):"failed"}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#className=#container.configExactMatchMap["/ws1"].config.endpointClass.name,#className,{#className.equals("com.MyWebSocketEndpoint")?#container.configExactMatchMap.remove("/ws1"):"failed"}'
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#className=#container.configExactMatchMap["/ws1"].config.endpointClass.name'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#className=#container.configExactMatchMap["/ws1"].config.endpointClass.name'
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+":"+#container.configExactMatchMap[#name].config.endpointClass.name}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+":"+#container.configExactMatchMap[#name].config.endpointClass.name}'
 
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#className=#container.configExactMatchMap["%s"].config.endpointClass.name,#className,{#className.equals("%s")?#container.configExactMatchMap.remove("%s"):"failed"}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#className=#container.configExactMatchMap["%s"].config.endpointClass.name,#className,{#className.equals("%s")?#container.configExactMatchMap.remove("%s"):"failed"}'
 
 
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoints=instances,#endpoint=#endpoints.{?#this.executor.class.getName.equals("com.InjectExecutor$evilExecutor")},#endpoint'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoints=instances,#endpoint=#endpoints.{?#this.executor.class.getName.equals("com.InjectExecutor$evilExecutor")},#endpoint'
 
 ,#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)'
 
@@ -168,9 +168,9 @@ vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint 
 #org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)
 
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class)'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class)'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,
 #constructor=
 @java.util.concurrent.ThreadPoolExecutor@class.getConstructor(
 @int@class,
@@ -190,54 +190,54 @@ vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint 
 #org.getThreadFactory(),
 #org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances.{?#this.executor.class.getName.equals("com.InjectExecutor$evilExecutor")},{#endpoint.size()==1?(#org=#endpoint[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint[0].setExecutor(#newExecutor)):"failed"}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances.{?#this.executor.class.getName.equals("com.InjectExecutor$evilExecutor")},{#endpoint.size()==1?(#org=#endpoint[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint[0].setExecutor(#newExecutor)):"failed"}'
 
 java.util.concurrent.TimeUnit.MILLISECONDS
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),java.util.concurrent.TimeUnit.MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),java.util.concurrent.TimeUnit.MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)'
 
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,{#org.unit==@java.util.concurrent.TimeUnit.class?"success":"false"}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,{#org.unit==@java.util.concurrent.TimeUnit.class?"success":"false"}'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#org.getRejectedExecutionHandler().class.getName'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#org.getRejectedExecutionHandler().class.getName'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#org.handler'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#org.handler'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@java.util.concurrent.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@org.apache.tomcat.util.threads.ThreadPoolExecutor.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@org.apache.tomcat.util.threads.ThreadPoolExecutor.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler()),#endpoint.setExecutor(#newExecutor)'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,#org.getRejectedExecutionHandler().class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler())'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,#org.getRejectedExecutionHandler().class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler())'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@org.apache.tomcat.util.threads.ThreadPoolExecutor.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler())'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@org.apache.tomcat.util.threads.ThreadPoolExecutor.RejectedExecutionHandler@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory(),#org.getRejectedExecutionHandler())'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#org'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#org'
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#rejectPolicyClass = @java.lang.Class@forName("org.apache.tomcat.util.threads.ThreadPoolExecutor$RejectPolicy")'
-
-
-
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@org.apache.tomcat.util.threads.ThreadPoolExecutor.RejectedExecutionHandler@class)'
-
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,#org.getRejectedExecutionHandler().class)'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#rejectPolicyClass = @java.lang.Class@forName("org.apache.tomcat.util.threads.ThreadPoolExecutor$RejectPolicy")'
 
 
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,@org.apache.tomcat.util.threads.ThreadPoolExecutor.RejectedExecutionHandler@class)'
 
-
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#org.class.getSuperclass()'
-
-
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class,#org.getRejectedExecutionHandler().class)'
 
 
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,{#org.class.getName.equals("com.InjectExecutor$evilExecutor")?(#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)'
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#org.class.getSuperclass()'
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)'
 
 
 
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=#endpoint.executor,{#org.class.getName.equals("%s")?(#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=instances[0].executor,{#org.class.getName.equals("com.InjectExecutor$evilExecutor")?(#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
+
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=#endpoint.executor,{#org.class.getName.equals("%s")?(#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
 
 
 sc -d * -n 30000 | grep class | awk '{print $NF}' | while read c; do jad $c | grep -q yv66vgAAA && echo
@@ -253,37 +253,37 @@ touch -- '--checkpoint-action=exec=sh shell.sh'
 
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#con=instances[1].getPipeline.class.getConstructor()'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#con=instances[1].getPipeline.class.getConstructor()'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#con=instances[1].getPipeline,#struct=#con.class.getConstructor(#con.container.class)'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#con=instances[1].getPipeline,#struct=#con.class.getConstructor(#con.container.class)'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#evils=#pip.getValves[0],#pip.removeValve(#evils)'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#evils=#pip.getValves[0],#pip.removeValve(#evils)'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#f=#pip.class.getDeclaredField("basic"),#f.set(#pip,null)'
-
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[1].getPipeline,@java.lang.reflect.Proxy@isProxyClass(#pip.basic)'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[1].getPipeline,#pip.class.getDeclaredMethod("destroyInternal")'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader '#pip=instances[0]'
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#good=#pip.getValves[1],#badfirst=1,{#pip.first.class.name.contains("proxy")?(#badfirst=#pip.first):null},#badfirst=#good,#badfirst'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#f=#pip.class.getDeclaredField("basic"),#f.set(#pip,null)'
 
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#bad=#pip.first,#good=#pip.basic,#bad=#good'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[1].getPipeline,@java.lang.reflect.Proxy@isProxyClass(#pip.basic)'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[1].getPipeline,#pip.class.getDeclaredMethod("destroyInternal")'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader '#pip=instances[0]'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first.class.name'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#good=#pip.getValves[1],#badfirst=1,{#pip.first.class.name.contains("proxy")?(#badfirst=#pip.first):null},#badfirst=#good,#badfirst'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#name=#pip.basic.class.name,#name.contains("Proxy")'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#bad=#pip.first,#good=#pip.basic,#bad=#good'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first.class.name'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#name=#pip.basic.class.name,#name.contains("Proxy")'
 
 1. 生成前端的代码，主页面命名为codex.html，需要适配接口，com.kmba.arthas下的每一个list接口返回的数据都列出到前端，然后鼠标悬停上面可以查看源码或是卸载，源码接口在JAD类中，如果存在重名的类，就需要有选择，让用户选择对应classLoaderHashCode的类（这个可以灵活实现，按照你自己的想法来）；
 
@@ -340,92 +340,92 @@ class-info是类名，classLoaderHash是类加载器的hash值；
  具体的核心技术，难度和工作量，从你刚才说的来看，工作量就看不出来
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs,#filtermaps=instances[0].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+":"+#this.filterName+":"+#filterConfigs[#a].filterClass):(null)}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs,#filtermaps=instances[0].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+":"+#this.filterName+":"+#filterConfigs[#a].filterClass):(null)}'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filtermaps=instances[0].filterMaps.array[0]'
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("/evil")},#ms.{#ctx.removeFilterMap(#ms[#c]),#c=#c+1}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filtermaps=instances[0].filterMaps.array[0]'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("/evil")},#ms.{#ms[#c],#c=#c+1}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("/evil")},#ms.{#ctx.removeFilterMap(#ms[#c]),#c=#c+1}'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].servletMappings'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].removeServletMapping("%s")'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#old=instances[0].applicationEventListenersList,#newList=new java.util.concurrent.CopyOnWriteArrayList(#old.{? !#this.getClass().getName().contains("o")}),instances[0].applicationEventListenersList=#newList'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#old=instances[0].applicationEventListenersList,#newList=new java.util.concurrent.CopyOnWriteArrayList(#old.{? !#this.getClass().getName().contains("o")}),instances[0].applicationEventListenersList=#newList'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("/evil")},#ms.{#ms[#c],#c=#c+1}'
 
 
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].servletMappings'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[0].applicationEventListenersList,#x=1,#list.{(#this.getClass.getName.contains("com.InjectListener$1EvilListener"))?(#x=#this):null},#list.remove(#x)'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].removeServletMapping("%s")'
 
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#old=instances[0].applicationEventListenersList,#newList=new java.util.concurrent.CopyOnWriteArrayList(#old.{? !#this.getClass().getName().contains("o")}),instances[0].applicationEventListenersList=#newList'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].pipeline.getValves()'
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("com.InjectValve$1")?(#evil=#this):null},#ctx.pipeline.removeValve(#evil)'
-
-vmtool --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances[0].httpUpgradeProtocols'
-
-vmtool --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances[%s].httpUpgradeProtocols.remove("%s")'
-
-
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express 'instances.{#e=#this.getExecutor}'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --classLoaderName java.net.URLClassLoader --express 'new org.apache.catalina.core.StandardContext()'
-
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=#endpoint.executor,{#org.class.getName.equals("com.InjectExecutor$evilExecutor")?(#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
-
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=#endpoint.executor,{#org.class.getName.equals("com.InjectExecutor$evilExecutor")?(#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
-
-
-vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=#endpoint.executor,{#org.class.getName.equals("com.InjectExecutor$evilExecutor")?(#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#old=instances[0].applicationEventListenersList,#newList=new java.util.concurrent.CopyOnWriteArrayList(#old.{? !#this.getClass().getName().contains("o")}),instances[0].applicationEventListenersList=#newList'
 
 
 
-
-vmtool --action getInstances --className java.util.Timer --express 'instances[0].queue.queue,#existTimer=#timers.{#this!=null?#this.getClass().getName():null}.{?#this!=null}'
-
-vmtool --action getInstances --className java.util.Timer --express '#timers=instances[0].queue.queue
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[0].applicationEventListenersList,#x=1,#list.{(#this.getClass.getName.contains("com.InjectListener$1EvilListener"))?(#x=#this):null},#list.remove(#x)'
 
 
-vmtool --action getInstances --className java.util.Timer --express 'instances.{#timers=#this.queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("com"),#this.cancel()):null}}'
-
-vmtool --action getInstances --className java.util.Timer --express '#timer=instances[%s],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals("%s")?(#timer.thread.stop(),"success"):null}.{?#this!=null}'
-
-vmtool --action getInstances --className java.util.Timer --express '#timers=instances[%s].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("%s"),#this.cancel()):null}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].pipeline.getValves()'
 
 
-vmtool --action getInstances --className java.util.TimerTask --express 'instances.{#this.getClass.getName.equals("com.InjectTimer$1")?(#this.cancel()):null}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("com.InjectValve$1")?(#evil=#this):null},#ctx.pipeline.removeValve(#evil)'
+
+vmtool -l -1 --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances[0].httpUpgradeProtocols'
+
+vmtool -l -1 --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances[%s].httpUpgradeProtocols.remove("%s")'
 
 
-vmtool --action getInstances --className java.lang.Thread --express 'instances.{#thread=#this,#className=#thread.target.getClass.getName(),#threadName=#thread.name,#threadName+":"+#className}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express 'instances.{#e=#this.getExecutor}'
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[%s],#threadName=#thread.name,#className=#thread.target.getClass().getName(),{#threadName.equals("%s")&&#className.equals("%s")?#thread.interrupt():null}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --classLoaderName java.net.URLClassLoader --express 'new org.apache.catalina.core.StandardContext()'
 
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+":"+#container.configExactMatchMap[#name].config.endpointClass.name}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=#endpoint.executor,{#org.class.getName.equals("com.InjectExecutor$evilExecutor")?(#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
 
-
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/evil"].config.endpointClass.name,#className,{#className.equals("com.MyWebSocketEndpoint")?#container.configExactMatchMap.remove("/evil"):"failed"}'
-
-
-vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/evil"].config.endpointClass.name,#className,{#className.equals("com.MyWebSocketEndpoint")?#container.configExactMatchMap.remove("/evil"):"failed"}'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=#endpoint.executor,{#org.class.getName.equals("com.InjectExecutor$evilExecutor")?(#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[%s].getPipeline,#bad=#pip.first,#good=#pip.basic,{#bad.class.name.equals("%s")?(#pip.first=#good):null}'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first.class.name'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[0],#org=#endpoint.executor,{#org.class.getName.equals("com.InjectExecutor$evilExecutor")?(#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):"failed"}'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#pip),#f=#evil.class.getDeclaredFields()[0],#f.setAccessible()'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#pip),#fields=@com.taobao.arthas.core.util.reflect.FieldUtils@getAllFieldsList(#evil)'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[1].getPipeline.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#pip),#fields=@com.taobao.arthas.core.util.reflect.FieldUtils@getAllFieldsList(#evil)'
+vmtool -l -1 --action getInstances --className java.util.Timer --express 'instances[0].queue.queue,#existTimer=#timers.{#this!=null?#this.getClass().getName():null}.{?#this!=null}'
+
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[0].queue.queue
+
+
+vmtool -l -1 --action getInstances --className java.util.Timer --express 'instances.{#timers=#this.queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("com"),#this.cancel()):null}}'
+
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timer=instances[%s],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals("%s")?(#timer.thread.stop(),"success"):null}.{?#this!=null}'
+
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[%s].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("%s"),#this.cancel()):null}'
+
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express 'instances.{#this.getClass.getName.equals("com.InjectTimer$1")?(#this.cancel()):null}'
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express 'instances.{#thread=#this,#className=#thread.target.getClass.getName(),#threadName=#thread.name,#threadName+":"+#className}'
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[%s],#threadName=#thread.name,#className=#thread.target.getClass().getName(),{#threadName.equals("%s")&&#className.equals("%s")?#thread.interrupt():null}'
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+":"+#container.configExactMatchMap[#name].config.endpointClass.name}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/evil"].config.endpointClass.name,#className,{#className.equals("com.MyWebSocketEndpoint")?#container.configExactMatchMap.remove("/evil"):"failed"}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#className=#container.configExactMatchMap["/evil"].config.endpointClass.name,#className,{#className.equals("com.MyWebSocketEndpoint")?#container.configExactMatchMap.remove("/evil"):"failed"}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[%s].getPipeline,#bad=#pip.first,#good=#pip.basic,{#bad.class.name.equals("%s")?(#pip.first=#good):null}'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first.class.name'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#pip),#f=#evil.class.getDeclaredFields()[0],#f.setAccessible()'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#pip),#fields=@com.taobao.arthas.core.util.reflect.FieldUtils@getAllFieldsList(#evil)'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[1].getPipeline.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#pip),#fields=@com.taobao.arthas.core.util.reflect.FieldUtils@getAllFieldsList(#evil)'
 
 ognl -c 2736b38e '#field = @com.taobao.arthas.core.util.reflect.FieldUtils@getDeclaredField(Class.forName("org.apache.catalina.core.StandardPipeline"),first,true)'
 
@@ -442,100 +442,100 @@ classloader -l | grep taobao
 
 ognl -c 492c5038 '#field = @com.taobao.arthas.core.util.reflect.FieldUtils@getDeclaredField(Class.forName("ognl.OgnlRuntime"),"_useStricterInvocation",true), #modifiers = @com.taobao.arthas.core.util.reflect.FieldUtils@getDeclaredField(#field.getClass(),"modifiers",true),#modifiers.setInt(#field, #field.getModifiers() & ~@java.lang.reflect.Modifier@FINAL),#field.set(null,false)'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#pip),#f=#evil.class.getDeclaredFields()[0],#f.setAccessible(true),#f.get(#evil)'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#pip),#f=#evil.class.getDeclaredFields()[0],#f.setAccessible(true),#f.get(#evil)'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline,#first=#pip.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields()[0],#f.setAccessible(true),#good=#f.get(#evil),#pipField=#pip.class.getDeclaredField("first"),#pipField.setAccessible(true),#pipField.set(#pip,#good)'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline,#first=#pip.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields()[0],#f.setAccessible(true),#good=#f.get(#evil),#pipField=#pip.class.getDeclaredField("first"),#pipField.setAccessible(true),#pipField.set(#pip,#good)'
 
 # 稳定可行版本
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("com.sun.proxy.$Proxy20"))?)#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("com.sun.proxy.$Proxy20"))?)#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline,#basicField=#pip.class.getDeclaredField("basic"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),{(#basic.class.name.equals("com.sun.proxy.$Proxy20"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#basic),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#basicField.set(#pip,#value)):("false")}):"failed"}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline,#basicField=#pip.class.getDeclaredField("basic"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),{(#basic.class.name.equals("com.sun.proxy.$Proxy20"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#basic),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#basicField.set(#pip,#value)):("false")}):"failed"}'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline,#first=#pip.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields()[0],#f.setAccessible(true),#good=#f.get(#evil),#pipField=#pip.class.getDeclaredField("first"),#pipField.setAccessible(true),#pipField.set(#pip,#good)'
-
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#basicField=#pip.class.getDeclaredField("basic"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#x={(#first!=null)?{"first"+":"+#first.class.name,"basic"+":"+#basic.class.name}:{"basic"+":"+#basic.class.name}},#x[0]'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[1].getPipeline,#first=#pip.first,#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields()[0],#f.setAccessible(true),#good=#f.get(#evil),#pipField=#pip.class.getDeclaredField("first"),#pipField.setAccessible(true),#pipField.set(#pip,#good)'
 
 
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#basicField=#pip.class.getDeclaredField("basic"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#x={(#first!=null)?{"first"+":"+#first.class.name,"basic"+":"+#basic.class.name}:{"basic"+":"+#basic.class.name}},#x[0]'
 
 
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoaderClass java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}'
 
 
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances'
 
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[7],#className=#thread.target.getClass.getName(),#threadName=#thread.name,#threadName+":"+#className'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[7],#className=#thread.target.getClass.getName(),#threadName=#thread.name,#threadName+":"+#className'
 
-vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[7],#threadName=#thread.name,#className=#thread.target.getClass().getName(),{#threadName.equals("GC Daemon 2")&&#className.equals("org.apache.jsp.injectThreadjsp_jsp$1")?#thread.interrupt():null}'
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[7],#threadName=#thread.name,#className=#thread.target.getClass().getName(),{#threadName.equals("GC Daemon 2")&&#className.equals("org.apache.jsp.injectThreadjsp_jsp$1")?#thread.interrupt():null}'
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#map=instances[0].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map).remove("/exec")'
-
-
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors.{(#this.class.getName()=="")}'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#map=instances[0].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map).remove("/exec")'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors.{(#this.class.getName())}'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors.{(#this.class.getName()=="")}'
 
 
-
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#interceptors=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#interceptors.{(#this.class.getName()=="com.DemoSpring.evilInterceptor")?(#interceptors.remove(#this)):null}'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors.{(#this.class.getName())}'
 
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors.getClass().getDeclaredMethods()'
-
-
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#ais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,'
-
-
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#oldais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#newais=,#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#oldais.add(#this)):null}'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#interceptors=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#interceptors.{(#this.class.getName()=="com.DemoSpring.evilInterceptor")?(#interceptors.remove(#this)):null}'
 
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#oldais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#a=#this,#newais.add(#a)):null},#newais'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors.getClass().getDeclaredMethods()'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#oldais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{#this}'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#ais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,'
+
+
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#oldais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#newais=,#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#oldais.add(#this)):null}'
 
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#oldais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#a=#this,#newais.add(#a)):null},#oldais=#newais,instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#oldais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#a=#this,#newais.add(#a)):null},#newais'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[0].getBean("requestMappingHandlerMapping"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#a=#this,#newais.add(#a)):null},#rmhm.getClass().getDeclaredField("adaptedInterceptors")'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#oldais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{#this}'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[0].getBean("requestMappingHandlerMapping"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#a=#this,#newais.add(#a)):null},#ahmClass=#rmhm.getClass().getSuperclass().getSuperclass().getSuperclass(),#f=#ahmClass.getDeclaredField("adaptedInterceptors"),#f.setAccessible(true),#f.set(#rmhm,#newais),#f.get(#rmhm)'
+
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#oldais=instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#a=#this,#newais.add(#a)):null},#oldais=#newais,instances[0].getBean("requestMappingHandlerMapping").adaptedInterceptors'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#map=instances[%s].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map)'
-
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#map=instances[%s].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map).remove("%s")'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[0].getBean("requestMappingHandlerMapping"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#a=#this,#newais.add(#a)):null},#rmhm.getClass().getDeclaredField("adaptedInterceptors")'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[%s].getBean("requestMappingHandlerMapping").adaptedInterceptors'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[0].getBean("requestMappingHandlerMapping"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="com.DemoSpring.evilInterceptor")?(#a=#this,#newais.add(#a)):null},#ahmClass=#rmhm.getClass().getSuperclass().getSuperclass().getSuperclass(),#f=#ahmClass.getDeclaredField("adaptedInterceptors"),#f.setAccessible(true),#f.set(#rmhm,#newais),#f.get(#rmhm)'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[%s].getBean("requestMappingHandlerMapping"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="%s")?(#a=#this,#newais.add(#a)):null},#ahmClass=#rmhm.getClass().getSuperclass().getSuperclass().getSuperclass(),#f=#ahmClass.getDeclaredField("adaptedInterceptors"),#f.setAccessible(true),#f.set(#rmhm,#newais)'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#map=instances[%s].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map)'
+
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#map=instances[%s].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map).remove("%s")'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet().class.getName),#key+":"+#tmpValue}'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[%s].getBean("requestMappingHandlerMapping").adaptedInterceptors'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[0],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet(),((#tmpValue==null)?(#outValue=#maps.get(#key)):(#outValue=#tmpValue.class.getName()))),#key+":"+#tmpValue}'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].servletMappings'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[%s].getBean("requestMappingHandlerMapping"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="%s")?(#a=#this,#newais.add(#a)):null},#ahmClass=#rmhm.getClass().getSuperclass().getSuperclass().getSuperclass(),#f=#ahmClass.getDeclaredField("adaptedInterceptors"),#f.setAccessible(true),#f.set(#rmhm,#newais)'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[0],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet(),((#tmpValue==null)?(#outValue=#maps.get(#key)):(#outValue=#tmpValue.class.getName()))),#key+":"+#outValue}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet().class.getName),#key+":"+#tmpValue}'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[%s].getBean("requestMappingHandlerMapping"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="%s")?(#a=#this,#newais.add(#a)):null},
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[0],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet(),((#tmpValue==null)?(#outValue=#maps.get(#key)):(#outValue=#tmpValue.class.getName()))),#key+":"+#tmpValue}'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].servletMappings'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[0],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet(),((#tmpValue==null)?(#outValue=#maps.get(#key)):(#outValue=#tmpValue.class.getName()))),#key+":"+#outValue}'
+
+
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[%s].getBean("requestMappingHandlerMapping"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!="%s")?(#a=#this,#newais.add(#a)):null},
 #ahmClass=#rmhm.getClass().getSuperclass().getSuperclass().getSuperclass(),#f=#ahmClass.getDeclaredField("adaptedInterceptors"),#f.setAccessible(true),#f.set(#rmhm,#newais)'
 
 
@@ -562,108 +562,108 @@ vmtool -action getInstances --className org.springframework.web.server.handler.F
 vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances[%s],#chain=#handler.chain,#chain.allFilters'
 
 
-vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER}'
+vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER}'
 
-vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit}'
+vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit}'
 
-vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="com.flux.evilNettyHandler")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
-
-
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings()[1].mappingRegistry.registry,#registry.keys.{#this.}'
+vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="com.flux.evilNettyHandler")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings()[1].mappingRegistry.registry,#registry.keys.{#this.patternsCondition.getPatterns().toString().contains("/exec")}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings()[1].mappingRegistry.registry,#registry.keys.{#this.}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings()[1].mappingRegistry.registry,#registry.keys.{#this.patternsCondition.getPatterns().toString().contains("/exec")}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#className=#routes.get(#tmpkey).getBean)}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.registry.remove(#tmpkey)):(null)}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#className=#routes.get(#tmpkey).getBean)}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#tmpmap=#maps.mappingRegistry,#tmpmap.registry.remove(#tmpkey),#tmpmap.pathLookup.remove(#tmpkey)):(null)}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.registry.remove(#tmpkey)):(null)}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes)}'
-
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings()'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#tmpmap=#maps.mappingRegistry,#tmpmap.registry.remove(#tmpkey),#tmpmap.pathLookup.remove(#tmpkey)):(null)}'
 
 
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes)}'
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#all=#maps.mappingRegistry.registry):(null)},#all'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings()'
 
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.unregisterMapping(#tmpkey)):(null)}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#all=#maps.mappingRegistry.registry):(null)},#all'
 
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.unregisterMapping(#tmpkey)):(null)}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1'   --express '#mappings=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings(),#rfm=#mappings.{? #this.class.name.contains("RouterFunctionMapping")}[0],#rfm.routerFunction.first'
+
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#mappings=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings(),#rfm=#mappings.{? #this.class.name.contains("RouterFunctionMapping")}[0],#length=#rfm.routerFunction.toString().split("\n").length,@java.util.Collections@nCopies(#length, "hello").forEach({ @java.lang.System@out.println(#this) })'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1'   --express '#mappings=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings(),#rfm=#mappings.{? #this.class.name.contains("RouterFunctionMapping")}[0],#rfm.routerFunction.first'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+":"+#this.filterName+":"+#filterConfigs[#a].filterClass):(null)}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#mappings=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings(),#rfm=#mappings.{? #this.class.name.contains("RouterFunctionMapping")}[0],#length=#rfm.routerFunction.toString().split("\n").length,@java.util.Collections@nCopies(#length, "hello").forEach({ @java.lang.System@out.println(#this) })'
 
-vmtool --action getInstances --className javax.servlet.ServletContext --express 'instances'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+":"+#this.filterName+":"+#filterConfigs[#a].filterClass):(null)}'
+
+vmtool -l -1 --action getInstances --className javax.servlet.ServletContext --express 'instances'
 
 SessionNauoFilter
 
-vmtool --action getInstances --className javax.servlet.ServletContext --express 'instances[0].context.getFilterRegistration("SessionNauoFilter")'
+vmtool -l -1 --action getInstances --className javax.servlet.ServletContext --express 'instances[0].context.getFilterRegistration("SessionNauoFilter")'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.filterDefs'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.filterDefs'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.{#this.filterDefs}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.{#this.filterDefs}'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.{#this.filterDef}'
-
-
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#configs=#ctx.filterConfigs,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("a")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.removeFilterDef(#ms[#c].filterName),#c=#c+1}'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#configs=#ctx.filterConfigs,#ctx.removeFilterDef(#configs["SessionNauoFilter"])'
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#configs=#ctx.filterConfigs,#e=#configs["SessionNauoFilter"],#ctx.removeFilterDef(#configs["SessionNauoFilter"])'
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0].filterDefs.remove("SessionNauoFilter")'
-
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals("%s")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.removeFilterDef(#ms[#c].filterName),#c=#c+1}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[0].filterConfigs.{#this.filterDef}'
 
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#basicField=#pip.class.getDeclaredField("basic"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#x={(#first!=null)?{"first"+":"+#first.class.name,"basic"+":"+#basic.class.name}:{"basic"+":"+#basic.class.name}},#x[0]'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].pipeline.getValves()'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#configs=#ctx.filterConfigs,#ms=#ctx.findFilterMaps().{? #this.getURLPatterns()[0].equals("a")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.removeFilterDef(#ms[#c].filterName),#c=#c+1}'
 
-
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("com.sun.proxy.$Proxy56"))?(#evil=@java.lang.reflect.Proxy@getInvocatiolHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#configs=#ctx.filterConfigs,#ctx.removeFilterDef(#configs["SessionNauoFilter"])'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext -classLoader org.springframework.boot.loader.LaunchedURLClassLoader --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("com.sun.proxy.$Proxy56"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#configs=#ctx.filterConfigs,#e=#configs["SessionNauoFilter"],#ctx.removeFilterDef(#configs["SessionNauoFilter"])'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0].filterDefs.remove("SessionNauoFilter")'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].getClass.getClass.getClassLoader.getClass.name'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals("%s")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.removeFilterDef(#ms[#c].filterName),#c=#c+1}'
 
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("%s")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'
 
-vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("MemshellValve")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#basicField=#pip.class.getDeclaredField("basic"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),#x={(#first!=null)?{"first"+":"+#first.class.name,"basic"+":"+#basic.class.name}:{"basic"+":"+#basic.class.name}},#x[0]'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].pipeline.getValves()'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("com.sun.proxy.$Proxy56"))?(#evil=@java.lang.reflect.Proxy@getInvocatiolHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoader org.springframework.boot.loader.LaunchedURLClassLoader --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("com.sun.proxy.$Proxy56"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].getClass.getClass.getClassLoader.getClass.name'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("%s")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals("MemshellValve")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'
 
 
 [@UnmodifiableMap[, 
@@ -671,10 +671,10 @@ vmtool --action getInstances --className org.apache.catalina.core.StandardContex
 , @RequestMappingInfo[{[GET, POST] /shell-flux-method2}]:@HandlerMethod[MemshellFluxHandlerMethod#simple()],, @RequestMappingInfo[{[GET, POST] /shell-flux-method}]:@HandlerMethod[MemshellFluxHandlerMethod#handle(ServerWebExchange)],, ]]
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#this}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#this}'
 
 
-vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#tmpkey=#this,#pattern=#tmpkey.patternsCondition.patterns.toString(),#ms[#tmpkey]}'
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#tmpkey=#this,#pattern=#tmpkey.patternsCondition.patterns.toString(),#ms[#tmpkey]}'
 @ArrayList[
     @String[[/]],
     @String[[/shell-flux-method2]],
@@ -685,19 +685,99 @@ vmtool --action getInstances --className 'org.springframework.boot.web.embedded.
 vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances[%s],#chain=#handler.chain,#oldFilters=#chain.getFilters(),#newFilters=new java.util.ArrayList(),#oldFilters.{(#this.class.getName()!="%s")?(#tmp=#this,#newFilters.add(#tmp)):(null)},#newChain=new org.springframework.web.server.handler.DefaultWebFilterChain(#chain.getHandler(),#newFilters),#f=#handler.getClass().getDeclaredField("chain"),#f.setAccessible(true),#mod=#f.getClass.getDeclaredField("modifiers"),#mod.setAccessible(true),#mod.setInt(#f,#f.getModifiers()&~@java.lang.reflect.Modifier@FINAL),#f.set(#handler,#newChain),#mod.setInt(#f,#f.getModifiers()&@java.lang.reflect.Modifier@FINAL)'
 
 
-vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
 
-15:30:51.329 [main] INFO com.kmba.tunnel.ArthasWsWrapper - ExecCmd: vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="MemshellFluxNettyHandler")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+15:30:51.329 [main] INFO com.kmba.tunnel.ArthasWsWrapper - ExecCmd: vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="MemshellFluxNettyHandler")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
 15:30:51.830 [main] INFO com.kmba.arthas.SpringFluxNettyHandler - /SpringFluxNettyHandler/unload: [Failed to execute ognl, exception message: ognl.OgnlException: Could not get static field NOOP_CONFIGURER from class reactor.netty.ReactorNetty [java.lang.ClassNotFoundException: Unable to resolve class: reactor.netty.ReactorNetty], please check $HOME/logs/arthas/arthas.log for more details.]
 15:30:51.830 [main] ERROR com.kmba.arthas.SpringFluxNettyHandler - Failed to execute ognl, exception message: ognl.OgnlException: Could not get static field NOOP_CONFIGURER from class reactor.netty.ReactorNetty [java.lang.ClassNotFoundException: Unable to resolve class: reactor.netty.ReactorNetty], please check $HOME/logs/arthas/arthas.log for more details.
 
 
 
-vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
 
-vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express '#hsc=instances[%s],{(#hsc.doOnChannelInit.getClass.getName=="%s")?(#hsc.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},#hsc.doOnChannelInit'
+vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express '#hsc=instances[%s],{(#hsc.doOnChannelInit.getClass.getName=="%s")?(#hsc.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},#hsc.doOnChannelInit'
 
-vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader org.springframework.boot.loader.LaunchedURLClassLoader --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader org.springframework.boot.loader.LaunchedURLClassLoader --express 'instances.{(#this.doOnChannelInit.getClass.getName=="%s")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
 
 
-vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext -classLoader  --express '#map=instances[0].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map)'
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext -classLoader  --express '#map=instances[0].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField("m"),#class.setAccessible(true),#class.get(#map)'
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#thread=instances[%s],#threadName=#thread.name,#className=#thread.target.getClass().getName(),{#threadName.equals("%s")&&#className.equals("%s")?#thread.interrupt():null}'
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#t=instances.{#t=#this,(#t.target==null)?(null):(#tName=#t.name,#tClassName=#t.target.getClass.getName(),#tName+":"+#tClassName)}'
+
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=new java.util.List,instances.{#thread=#this,#thread.target==null?(null):(#ts.add(#thread))},#className=#thread.target.getClass().getName(),{#threadName.equals("%s")&&#className.equals("%s")?#thread.interrupt():null}}'
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?#this.target!=null}'
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?#this.target!=null},#ts.{#thread=#this,#className=#thread.target.getClass().getName(),#threadName=#thread.name,{#threadName.equals("%s")&&#className.equals("%s")?#thread.interrupt():null}}'
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{? #this.target != null},#ts.{#tName=#this.name,#tClassName=#this.target}'
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{? #this.target != null},#ts.{#tName=#this.name,#tClassName=#this.target.getClass}'
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{? #this.target != null},#ts.{#tName=#this.name,#tClassName=#this.target.getClass}'
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{? #this.target != null},#ts.{#ts0=#this,#tName=#this.name,#tClassName,{(#th0.target==null)?(null):(#tClassName=#th0.target.getClass().getName())},#tName+":"+#tClassName}'
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.target!=null)},#ts.{#ts0=#this,#tName=#ts0.name,#tClassName,{(#ts0.target==null)?(null):(#tClassName=#ts0.target)},#tName+":"+#tClassName}'
+
+
+
+vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?#this.target!=null},#ts.{#this.target}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals("%s")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.filterDefs(#ms[#c].filterName),#c=#c+1}'
+
+
+vmtool -l -1 --action getInstances --className org.springframework.boot.web.embedded.netty.NettyWebServer$1 --express '#mappings=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings(),#rfm=#mappings.{? #this.class.name.contains("RouterFunctionMapping")}[0],#rf=#rfm.routerFunction,#rf'
+
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[0].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("%s"),#this.cancel()):null}'
+
+
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express '#timers=instances'
+
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express 'instances.{#this.getClass.getName}'
+
+
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[%s].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("%s"),#this.cancel()):null}'
+
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express '#notCancel=instances.{?#this.state != 3},#notCancel.{#this.getClass.getName}'
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express 'instances.{#this.getClass.getName}'
+
+vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[%s].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals("%s"),#this.cancel()):null}'
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express '#notCancel=instances.{?#this.state != 3},#notCancel.{(#this!=null)?(#this.getClass().getName().equals("%s"),#this.cancel()):null}'
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express '#evilQueue=#instances.{#this!=null&&#this.getClass().getName().equals("MemshellTimerTask2")?(#timer.thread.stop(),"success"):null}.{?#this!=null}'
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express '#evilQueue=instances.{#this!=null&&#this.getClass().getName().equals("MemshellTimerTask2")?(#this.stop(),"success"):null}'
+
+
+
+vmtool -l -1 --action getInstances --className java.util.TimerTask --express '#notCancel=instances.{?#this.state != 3},#notCancel.{(#this!=null&&#this.getClass().getName().equals("%s"))?(#this.cancel()):null}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals("%s")},{(#ms.size!=0)?(#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.filterDefs.remove(#ms[#c].filterName),#c=#c+1}):"unexisted"}'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[0].applicationEventListenersList,#x=-1,{(!#list.isEmpty)?(#list.{(#this.getClass.getName.equals(""))?(#x=#this):("null")},{(#x==-1)?("unExist"):(#list.remove(#x))}):("isEmpty")}'
+
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[0],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals("abc")},{(#ms.size!=0)?(#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.filterDefs.remove(#ms[#c].filterName),#c=#c+1}):"unExist"}'
+
+vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("/exec"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'
+

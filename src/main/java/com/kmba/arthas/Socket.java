@@ -20,13 +20,18 @@ import java.util.regex.Pattern;
 @RestController
 @RequestMapping("/socket")
 public class Socket {
-    private String listSocketByVmtool = "vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+\":\"+#container.configExactMatchMap[#name].config.endpointClass.name}'";
+    private String listSocketByVmtool = "vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+\":\"+#container.configExactMatchMap[#name].getEndpointClass()}'";
     //    @ArrayList[
 //    @String[/ws2:com.MyWebSocketEndpoint],
 //    @String[/ws1:com.MyWebSocketEndpoint],
 //    @String[/ws3:com.MyWebSocketEndpoint],
 //            ]
-    private String unloadSocketByVmtool = "vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#className=#container.configExactMatchMap[\"%s\"].config.endpointClass.name,#className,{#className.equals(\"%s\")?#container.configExactMatchMap.remove(\"%s\"):\"failed\"}'";
+    /**
+     * @ArrayList[
+     *     @String[/ws-shell:class MemshellWebSocket],
+     * ]
+     */
+    private String unloadSocketByVmtool = "vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#className=#container.configExactMatchMap[\"%s\"].getEndpointClass().getName(),{#className.equals(\"%s\")?#container.configExactMatchMap.remove(\"%s\"):\"failed\"}'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     @RequestMapping("/list")
@@ -37,7 +42,7 @@ public class Socket {
 
             String resultAll = Util.getListResult(socketCnt ,listSocketByVmtool);
 
-            String regex = "\\@String\\[(.*?):([0-9a-zA-Z.$_]+)\\]";
+            String regex = "\\@String\\[(.*?):class ([0-9a-zA-Z.$_/]+)\\]";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -66,15 +71,20 @@ public class Socket {
             int socketCnt = Util.getSocketCnt();
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
+            int failCnt = 0;
             for (int i = 0; i < socketCnt; i++) {
                 String cmd = String.format(unloadSocketByVmtool, i, urlName , className ,urlName);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/socket/unload: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/socket/unload: {}" ,resultStr);
+                if (resultStr.contains("Failed to execute ognl") || resultStr.contains("@String[failed]")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == socketCnt) {
+                return "OGNL execute failed";
             }
             return "success";
         } catch (Exception e){

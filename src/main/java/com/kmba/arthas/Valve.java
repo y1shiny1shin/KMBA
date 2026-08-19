@@ -49,8 +49,8 @@ public class Valve {
      *     @String[org.apache.catalina.core.StandardContextValve],
      * ]
      */
-    private String listValveByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].pipeline.getValves().{#this.getClass.name}'";
-    private String unloadValveByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals(\"%s\")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'";
+    private String listValveByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].pipeline.getValves().{#this.getClass.name}'";
+    private String unloadValveByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#valves=#ctx.pipeline.getValves(),#valves.{#this.getClass().getName().equals(\"%s\")?(#evil=#this,#ctx.pipeline.removeValve(#evil)):null}'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     /**
@@ -90,15 +90,20 @@ public class Valve {
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             int tomcatSiteCnt = Dict.getTomcatSiteCnt();
+            int failCnt = 0;
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadValveByVmtool, i , className);
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/valve/unload: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/valve/unload: {}" ,resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
 
+            }
+            if (failCnt == tomcatSiteCnt) {
+                return "OGNL execute failed";
             }
             return "success";
         } catch (Exception e){

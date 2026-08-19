@@ -1,11 +1,12 @@
 ## 更新日志
 
 ### v0.5
-- 优化报错逻辑
-- 通过Nacos 2.2.2、XXL-JOB 2.1.2、fastjson 1.2.24、Ruoyi 3.4.0四种环境的测试
+- 通过Nacos 2.2.2、XXL-JOB 2.1.2、fastjson 1.2.24、Ruoyi 3.4.0、Shiro 1.2.4五种环境的测试
 - 优化proxyValve、classLoader逻辑，提升稳定性
 - 美化cli部分，现在更好看了
+- 优化大量输出逻辑，结果输出更直观
 - 主要针对memshell-party做适配
+- 解决大量已知bug
 
 ---
 

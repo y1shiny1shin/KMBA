@@ -39,9 +39,9 @@ public class SpringFluxHandlerMethod {
      * org.springframework.web.reactive.result.method.AbstractHandlerMethodMapping$MappingRegistry#unregister
      * 自带一个unregister，正好可以直接调用卸载，稍微难点的是这里的逻辑要匹配好
      * unload：
-     * vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'
+     * vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("com.flux.LogHandlerMethod"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'
      * list：
-     * vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#maps.getHandlerMethods'
+     * vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#maps.getHandlerMethods'
      *
      *
      * 需要优化（已做）
@@ -49,12 +49,12 @@ public class SpringFluxHandlerMethod {
      */
 
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
-    private String listSFHMByVmtool = "vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[%s].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains(\"RequestMappingHandlerMapping\"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#tmpkey=#this,#pattern=#tmpkey.patternsCondition.patterns.toString(),#pattern+\":\"+#ms[#tmpkey]}'";
-    private String unloadSFHMByVmtool = "vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express " +
+    private String listSFHMByVmtool = "vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[%s].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains(\"RequestMappingHandlerMapping\"))?(#maps=#this):(null)},#ms=#maps.getHandlerMethods,#ms.keys.{#tmpkey=#this,#pattern=#tmpkey.patternsCondition.patterns.toString(),#pattern+\":\"+#ms[#tmpkey]}'";
+    private String unloadSFHMByVmtool = "vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express " +
             "'#maps,#registry=instances[%s].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings()" +
             ".{(#this.class.getName.contains(\"RequestMappingHandlerMapping\"))?(#maps=#this):(null)}," +
             "#routes=#maps.getHandlerMethods()," +
-            "#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains(\"%s\"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'";
+            "#routes.keys.{(#tmpkey=#this,#tmpkey.patternsCondition.patterns.toString().equals(\"[%s]\"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'";
     @RequestMapping("/list")
     public JSONArray list() {
         try {
@@ -102,15 +102,20 @@ public class SpringFluxHandlerMethod {
 
             OGNLUtils.setStrictModeClose();
 
+            int failCnt = 0;
             for (int i = 0 ;i<nettyServerCnt ;i++) {
                 String cmd = String.format(unloadSFHMByVmtool,i ,className);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/SpringFluxHandlerMethod/unload: {}" , result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/SpringFluxHandlerMethod/unload: {}" , resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == nettyServerCnt) {
+                return "OGNL execute failed";
             }
 
             return "success";

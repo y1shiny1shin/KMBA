@@ -28,9 +28,10 @@ import static com.kmba.Utils.Dict.getTomcatSiteCnt;
 public class Listener {
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     // OGNL语法 集合过滤逻辑 ? ! 引用： https://blog.csdn.net/qin9r3y/article/details/8451977
-    private String unloadListenerByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[%s].applicationEventListenersList,#x=1,#list.{(#this.getClass.getName.contains(\"%s\"))?(#x=#this):null},#list.remove(#x)'";
+//    private String unloadListenerByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[%s].applicationEventListenersList,#x=1,#list.{(#this.getClass.getName.contains(\"%s\"))?(#x=#this):null},#list.remove(#x)'";
+    private String unloadListenerByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[%s].applicationEventListenersList,#x=\"-1\",{(!#list.isEmpty)?(#list.{(#this.getClass.getName.equals(\"%s\"))?(#x=#this):(\"null\")},{(#x==\"-1\")?(\"unExist\"):(#list.remove(#x))}):(\"isEmpty\")}'";
     private String listListenerBySc = "sc javax.servlet.ServletRequestListener";
-    private String listListenerByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].applicationEventListenersList'";
+    private String listListenerByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].applicationEventListenersList'";
     @RequestMapping("/list")
     public JSONArray list() {
         JSONArray jsonArray = new JSONArray();
@@ -55,7 +56,7 @@ public class Listener {
                 if (!(result.isEmpty() || result == null)) {
                     for (String result0: result){
                         if (result0 != "@CopyOnWriteArrayList[isEmpty=true;size=0]"){
-                            String regex = "@\\w+\\[([0-9a-zA-Z.$_]+)@[0-9a-f]{1,8}\\]";
+                            String regex = "@\\w+\\[([0-9a-zA-Z.$_/]+)@[0-9a-f]{1,8}\\]";
                             Pattern pattern = Pattern.compile(regex);
                             Matcher matcher = pattern.matcher(result0);
 
@@ -105,15 +106,36 @@ public class Listener {
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             int tomcatSiteCnt = getTomcatSiteCnt();
+            int failCnt = 0;
+            int isEmptyCnt = 0;
+            int isExistCnt = 0;
             for (int i=0; i<tomcatSiteCnt; i++) {
                 String cmd = String.format(unloadListenerByVmtool ,i ,className);
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/listener/unload: " + result);
+                String resultStr = String.join("" ,result);
+                logger.info("/listener/unload: {}" , resultStr);
 
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+                if (resultStr.contains("isEmpty")){
+                    logger.error(resultStr);
+                    isEmptyCnt++;
+                }
+                if (resultStr.contains("unExist")){
+                    logger.error(resultStr);
+                    isExistCnt++;
+                }
+            }
+            if (failCnt == tomcatSiteCnt) {
+                return "OGNL execute failed";
+            }
+            if (isEmptyCnt == tomcatSiteCnt) {
+                return "Listener is empty";
+            }
+            if (isExistCnt == tomcatSiteCnt) {
+                return "Listener not found";
             }
 
         } catch (InterruptedException e) {

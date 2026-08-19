@@ -23,12 +23,12 @@ public class SpringFluxNettyHandler {
      * 卸载（初步逻辑，待优化）
      * 将恶意的doOnChannelInit，替换为Netty的默认Configurer：@reactor.netty.ReactorNetty@NOOP_CONFIGURER
      * 由于Netty的Pipeline是动态生成，故调用pipeline.remove仅能终止正在进行的连接，无法阻止后续连接
-     * vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="com.flux.evilNettyHandler")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
+     * vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{(#this.doOnChannelInit.getClass.getName=="com.flux.evilNettyHandler")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'
      * 获取通过
-     * vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit.getClass.getName}'
+     * vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit.getClass.getName}'
      */
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
-    private String listSFNHByVmtool = "vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit.getClass.getName}'";
+    private String listSFNHByVmtool = "vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.{#this.doOnChannelInit.getClass.getName}'";
     /**
      * @ArrayList[
      *     @String[reactor.netty.ReactorNetty$$Lambda$340/1681094402],
@@ -37,8 +37,8 @@ public class SpringFluxNettyHandler {
      * ]
      * unload 需要指定 classLoader，通过 Util.getClassLoader() 获取后再指定
      */
-//    private String unloadSFNHByVmtool = "vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express 'instances.{(#this.doOnChannelInit.getClass.getName==\"%s\")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'";
-    private String unloadSFNHByVmtool = "vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express '#hsc=instances[%s],{(#hsc.doOnChannelInit.getClass.getName==\"%s\")?(#hsc.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},#hsc.doOnChannelInit'";
+//    private String unloadSFNHByVmtool = "vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express 'instances.{(#this.doOnChannelInit.getClass.getName==\"%s\")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'";
+    private String unloadSFNHByVmtool = "vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express '#hsc=instances[%s],{(#hsc.doOnChannelInit.getClass.getName==\"%s\")?(#hsc.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},#hsc.doOnChannelInit'";
     @RequestMapping("/list")
     public JSONArray list() {
         try {
@@ -74,18 +74,26 @@ public class SpringFluxNettyHandler {
             OGNLUtils.setStrictModeClose();
 
             int httpServerConfigCnt = Util.getHttpServerConfigCnt();
+            int failCnt = 0;
             for (int i = 0; i < httpServerConfigCnt; i++) {
                 // 每个实例都需要动态获取 classLoader 后指定
                 String classLoader = Util.getClassLoader("reactor.netty.http.server.HttpServerConfig", i, wrapper);
-                if (classLoader == null) continue;
+                if (classLoader == null) {
+                    failCnt++;
+                    continue;
+                }
                 String cmd = String.format(unloadSFNHByVmtool, classLoader, i, className);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/SpringFluxNettyHandler/unload: {}" , result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/SpringFluxNettyHandler/unload: {}" , resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == httpServerConfigCnt) {
+                return "OGNL execute failed";
             }
 
             return "success";

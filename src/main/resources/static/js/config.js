@@ -45,14 +45,7 @@ const MODULES = [
     { id: 'thread',   title: 'Thread',    desc: 'threadName -> className',   list: '/thread/list',
         unload: { url: '/thread/unload',   params: (qs, r) => { qs.set('threadName', r.key || ''); qs.set('className', r.className || ''); } } },
     { id: 'timer',    title: 'Timer',     desc: 'className',                 list: '/timer/list',
-        unload: {
-            choices: [
-                { v: 'gently', t: '温和取消 (unload)',   d: '调用 cancel，更安全。' },
-                { v: 'force',  t: '强制停止 (unloadForce)', d: '可能有资源泄露风险，且 stop 已弃用，执行可能失败。' }
-            ],
-            url: (p) => p === 'force' ? '/timer/unloadForce' : '/timer/unload',
-            params: (qs, r) => qs.set('className', r.className || '')
-        } },
+        unload: { url: '/timer/unload',   params: (qs, r) => qs.set('className', r.className || '') } },
     { id: 'upgrade',  title: 'Upgrade',   desc: 'upgradeName -> className',  list: '/upgrade/list',
         unload: { url: '/upgrade/unload',  params: (qs, r) => qs.set('upgradeName', r.key || '') } },
 

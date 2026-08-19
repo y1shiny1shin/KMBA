@@ -20,13 +20,13 @@ import java.util.regex.Pattern;
 @RestController
 @RequestMapping("/timer")
 public class Timer {
-    //    private String listTimerByVmtool = "vmtool --action getInstances --className java.util.Timer --express '#timers=instances[%s].queue.queue,#existTimer=#timers.{#this!=null?#this.getClass().getName():null}.{?#this!=null}'";
+    //    private String listTimerByVmtool = "vmtool -l -1 --action getInstances --className java.util.Timer --express '#timers=instances[%s].queue.queue,#existTimer=#timers.{#this!=null?#this.getClass().getName():null}.{?#this!=null}'";
     // 不从Timer#queue获取（Arthas获取Timer对象存在bug），直接找TimerTask对象
-    private String listTimerByVmtool = "vmtool --action getInstances --className java.util.TimerTask --express 'instances.{#this.getClass.getName}'";
+    private String listTimerByVmtool = "vmtool -l -1 --action getInstances --className java.util.TimerTask --express '#notCancel=instances.{?#this.state != 3},#notCancel.{#this.getClass.getName}'";
     // 温和版TimerTask#cancel方法
-    private String unloadTimerByVmtoolGently = "vmtool --action getInstances --className java.util.Timer --express '#timers=instances[%s].queue.queue,#existTimer=#timers.{#this!=null?(#this.getClass().getName().equals(\"%s\"),#this.cancel()):null}'";
+    private String unloadTimerByVmtoolGently = "vmtool -l -1 --action getInstances --className java.util.TimerTask --express '#notCancel=instances.{?#this.state != 3},#notCancel.{(#this!=null&&#this.getClass().getName().equals(\"%s\"))?(#this.cancel()):null}'";
     // 强制删除，会有资源泄露的风险，并且stop方法已弃用，可能会执行失败
-    private String unloadTimerByVmtoolForcly = "vmtool --action getInstances --className java.util.Timer --express '#timer=instances[%s],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals(\"%s\")?(#timer.thread.stop(),\"success\"):null}.{?#this!=null}'";
+//    private String unloadTimerByVmtoolForcly = "vmtool -l -1 --action getInstances --className java.util.Timer --express '#timer=instances[%s],#queues=#timer.queue.queue,#evilQueue=#queues.{#this!=null&&#this.getClass().getName().equals(\"%s\")?(#timer.thread.stop(),\"success\"):null}.{?#this!=null}'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @RequestMapping("/list")
     public JSONArray list() {
@@ -72,19 +72,20 @@ public class Timer {
     @RequestMapping("/unload")
     public String unload(@RequestParam String className) {
         try{
-            int timerCnt = Util.getTimerCnt();
+//            int timerCnt = Util.getTimerCnt();
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
-            for (int i=0; i<timerCnt; i++){
-                String cmd = String.format(unloadTimerByVmtoolGently, i ,className);
+//            for (int i=0; i<timerCnt; i++){
+            String cmd = String.format(unloadTimerByVmtoolGently ,className);
 
-                List<String> result = wrapper.runCmd(cmd);
-                logger.info("/timer/unload: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
-                }
+            List<String> result = wrapper.runCmd(cmd);
+            String resultStr = String.join("" ,result);
+            logger.info("/timer/unload: {}" ,resultStr);
+            if (resultStr.contains("Failed to execute ognl")){
+                logger.error(resultStr);
+                return "OGNL execute failed";
             }
+//            }
             return "success";
         } catch (Exception e){
             logger.error(e.getMessage());
@@ -92,28 +93,28 @@ public class Timer {
         }
     }
 
-    @RequestMapping("/unloadForce")
-    public String unloadForce(@RequestParam String className) {
-        try{
-            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-
-            int timerCnt = Util.getTimerCnt();
-
-            for (int i=0; i<timerCnt; i++){
-                String cmd = String.format(unloadTimerByVmtoolForcly, i ,className);
-
-                List<String> result = wrapper.runCmd(cmd);
-                logger.info("/timer/unloadForce: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
-                }
-            }
-            return "success";
-
-        } catch (Exception e){
-            logger.error(e.getMessage());
-            return "failed";
-        }
-    }
+//    @RequestMapping("/unloadForce")
+//    public String unloadForce(@RequestParam String className) {
+//        try{
+//            ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
+//
+//            int timerCnt = Util.getTimerCnt();
+//
+//            for (int i=0; i<timerCnt; i++){
+//                String cmd = String.format(unloadTimerByVmtoolForcly, i ,className);
+//
+//                List<String> result = wrapper.runCmd(cmd);
+//                logger.info("/timer/unloadForce: {}" ,result);
+//                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
+//                    logger.error(result.get(0));
+//                    return "OGNL execute failed";
+//                }
+//            }
+//            return "success";
+//
+//        } catch (Exception e){
+//            logger.error(e.getMessage());
+//            return "failed";
+//        }
+//    }
 }

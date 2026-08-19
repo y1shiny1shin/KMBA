@@ -64,16 +64,23 @@ public class CliHandler {
             return;
         }
 
+        // 连接前校验参数，非法参数直接返回，不浪费时间 attach
+        String argError = validateArgs(args);
+        if (argError != null) {
+            System.out.println(argError);
+            return;
+        }
+
         // 连接目标 JVM
         String pid = args[0];
-        System.out.println("[*] 正在连接 PID: " + pid);
+        System.out.println("[*] connecting to PID: " + pid);
         ArthasController arthas = new ArthasController();
         String connectResult = arthas.connect(pid);
         if (!"success".equals(connectResult)) {
-            System.err.println("[!] 连接失败: " + connectResult);
+            System.err.println("[!] connect failed: " + connectResult);
             return;
         }
-        System.out.println("[+] 已连接");
+        System.out.println("[+] connected");
 
         // 执行命令，执行指定参数
         try {
@@ -99,7 +106,7 @@ public class CliHandler {
                 handleJad(args[2]);
             } else if ("-vmtool".equals(op)) {
                 if (args.length < 3) {
-                    System.out.println("用法: cli <pid> -vmtool <className> [classLoaderHash]");
+                    System.out.println("Usage: cli <pid> -vmtool <className> [classLoaderHash]");
                     return;
                 }
                 handleVmtool(args);
@@ -112,31 +119,61 @@ public class CliHandler {
         }
     }
 
+    /**
+     * 连接前校验参数（纯本地判断，无 IO），非法参数返回要打印的错误信息，
+     * 合法返回 null。避免无效指令浪费时间 attach Arthas。
+     */
+    private static String validateArgs(String[] args) {
+        String op = args[1];
+        if ("-l".equals(op)) {
+            if (args.length < 3) return buildHelp();
+            String type = args[2];
+            if (!"all".equals(type) && findComp(type) == null) return buildHelp();
+        } else if ("-u".equals(op)) {
+            if (args.length < 4) return buildHelp();
+            Comp c = findComp(args[2]);
+            if (c == null) return buildHelp();
+            // proxyValve / thread / socket / executor 需要额外参数
+            if (args.length < 5
+                    && ("proxyValve".equals(args[2]) || "thread".equals(args[2])
+                        || "socket".equals(args[2]) || "executor".equals(args[2]))) {
+                return "Usage: cli <pid> " + c.help;
+            }
+        } else if ("-jad".equals(op)) {
+            if (args.length < 3) return buildHelp();
+        } else if ("-vmtool".equals(op)) {
+            if (args.length < 3) return "Usage: cli <pid> -vmtool <className> [classLoaderHash]";
+        } else {
+            return buildHelp();
+        }
+        return null;
+    }
+
     public static final String HELP = buildHelp();
 
     public static String buildHelp() {
         StringBuilder sb = new StringBuilder();
-        sb.append("KMBA - Java 内存马查杀工具\n");
+        sb.append("KMBA - Kill Memshell By Arthas [^_^]\n");
         sb.append("\n");
-        sb.append("用法:\n");
-        sb.append("  java -jar KMBA.jar                         启动 Web 管理端\n");
-        sb.append("  java -jar KMBA.jar cli <pid> <command>     CLI 模式（附加到目标 JVM）\n");
-        sb.append("  java -jar KMBA.jar --help                  显示帮助\n");
+        sb.append("Usage:\n");
+        sb.append("  java -jar KMBA.jar                         Start web console\n");
+        sb.append("  java -jar KMBA.jar cli <pid> <command>     CLI mode (attach to target JVM)\n");
+        sb.append("  java -jar KMBA.jar --help                  Show this help\n");
         sb.append("\n");
-        sb.append("命令:\n");
-        sb.append("  -l  <component>   列出指定类型的组件\n");
-        sb.append(String.format("  -l  all           列出全部 %s 种组件\n" ,COMPS.length));
-        sb.append("  -u  <组件> <目标> [额外参数]\n");
-        sb.append("                    卸载/移除恶意组件\n");
-        sb.append("  -jad <类名>       反编译并显示类源码\n");
-        sb.append("  -vmtool <类名> [classLoaderHash]\n");
-        sb.append("                    获取类在内存中的实例参数\n");
+        sb.append("Commands:\n");
+        sb.append("  -l  <component>   List components of the given type\n");
+        sb.append(String.format("  -l  all           List all %s component types\n" ,COMPS.length));
+        sb.append("  -u  <component> <target> [extra]\n");
+        sb.append("                    Unload/remove the malicious component\n");
+        sb.append("  -jad <className>  Decompile and show class source code\n");
+        sb.append("  -vmtool <className> [classLoaderHash]\n");
+        sb.append("                    Get instance details of the class in memory\n");
         sb.append("\n");
-        sb.append("选项:\n");
-        sb.append("  --log true        启用调试日志（CLI 模式默认关闭）\n");
-        sb.append("  --help            显示帮助\n");
+        sb.append("Options:\n");
+        sb.append("  --log true        Enable debug logging (disabled by default in CLI mode)\n");
+        sb.append("  --help            Show this help\n");
         sb.append("\n");
-        sb.append("组件类型及 -u 用法:\n");
+        sb.append("Component types and -u usage:\n");
         for (Comp c : COMPS) {
             sb.append("  ");
             sb.append(String.format("%-18s", c.name));
@@ -144,7 +181,7 @@ public class CliHandler {
             sb.append("\n");
         }
         sb.append("\n");
-        sb.append("示例:\n");
+        sb.append("Examples:\n");
         sb.append("  java -jar KMBA.jar cli 54203 -l all\n");
         sb.append("  java -jar KMBA.jar cli 54203 -l servlet\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u servlet /evil\n");
@@ -153,6 +190,8 @@ public class CliHandler {
         sb.append("  java -jar KMBA.jar cli 54203 -u proxyValve basic com.InjectValve\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u thread myThread com.EvilTask\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u socket /ws com.MyEndpoint\n");
+        sb.append("  java -jar KMBA.jar cli 54203 -u executor gently com.InjectExecutor\n");
+        sb.append("  java -jar KMBA.jar cli 54203 -u executor brutly com.InjectExecutor\n");
         sb.append("  java -jar KMBA.jar cli 54203 -jad com.InjectServlet\n");
         sb.append("  java -jar KMBA.jar cli 54203 -vmtool javax.servlet.Servlet\n");
         sb.append("  java -jar KMBA.jar cli 54203 -vmtool javax.servlet.Servlet 439f5b3d\n");

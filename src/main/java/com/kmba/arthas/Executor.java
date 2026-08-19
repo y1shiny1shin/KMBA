@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 @RestController
 @RequestMapping("/executor")
 public class Executor {
-    private String listExecutorByVmtool = "vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express 'instances.{#e=#this.getExecutor}'";
+    private String listExecutorByVmtool = "vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express 'instances.{#e=#this.getExecutor}'";
 //    @ArrayList[
 //    @evilExecutor[com.InjectExecutor$evilExecutor@5af54470[Running, pool size = 10, active threads = 0, queued tasks = 0, completed tasks = 0]],
 //            ]
@@ -28,13 +28,13 @@ public class Executor {
      * org.apache.tomcat.util.threads.ThreadPoolExecutor不是一个类型，
      * 直接设置不会有问题，但是会影响后来者（利弊参半），可能会触发java.lang.ClassCastException的异常，对可能存在的业务有影响
      */
-    private String unloadExecutorByVmtoolBrutly = "vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[%s],#org=#endpoint.executor,{#org.class.getName.equals(\"%s\")?(#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):\"failed\"}'";
+    private String unloadExecutorByVmtoolBrutly = "vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[%s],#org=#endpoint.executor,{#org.class.getName.equals(\"%s\")?(#constructor=@java.util.concurrent.ThreadPoolExecutor@class.getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):\"failed\"}'";
     /**
      * 杀2，温和一点，后续executor也可以继续添加，对业务影响小
      * 原理就是从恶意类中获取到父类org.apache.tomcat.util.threads.ThreadPoolExecutor的构造方法，
      * 直接通过@org.apache.tomcat.util.threads.ThreadPoolExecutor@class获取不到该构造方法(很巧妙)
      */
-    private String unloadExecutorByVmtoolGently = "vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[%s],#org=#endpoint.executor,{#org.class.getName.equals(\"%s\")?(#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):\"failed\"}'";
+    private String unloadExecutorByVmtoolGently = "vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express '#endpoint=instances[%s],#org=#endpoint.executor,{#org.class.getName.equals(\"%s\")?(#constructor=#org.class.getSuperclass().getConstructor(@int@class,@int@class,@long@class,@java.util.concurrent.TimeUnit@class,@java.util.concurrent.BlockingQueue@class,@java.util.concurrent.ThreadFactory@class),#newExecutor=#constructor.newInstance(#org.getCorePoolSize(),#org.getMaximumPoolSize(),#org.getKeepAliveTime(@java.util.concurrent.TimeUnit@MILLISECONDS),@java.util.concurrent.TimeUnit@MILLISECONDS,#org.getQueue(),#org.getThreadFactory()),#endpoint.setExecutor(#newExecutor)):\"failed\"}'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @RequestMapping("/list")
     public JSONArray list() {
@@ -76,15 +76,20 @@ public class Executor {
 
             int cnt = Util.getEndpointCnt();
 
+            int failCnt = 0;
             for (int i=0 ;i<cnt ;i++){
                 String cmd = String.format(unloadExecutorByVmtoolBrutly ,i ,className);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/executor/unloadBrutly: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/executor/unloadBrutly: {}" ,resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == cnt) {
+                return "OGNL execute failed";
             }
 
             return "success";
@@ -102,15 +107,20 @@ public class Executor {
 
             int cnt = Util.getEndpointCnt();
 
+            int failCnt = 0;
             for (int i=0 ;i<cnt ;i++){
                 String cmd = String.format(unloadExecutorByVmtoolGently ,i ,className);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/executor/unloadGently: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/executor/unloadGently: {}" ,resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == cnt) {
+                return "OGNL execute failed";
             }
 
             return "success";

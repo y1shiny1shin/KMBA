@@ -30,9 +30,9 @@ public class Filter {
     /**
      * filter 查询与卸载优化，最好是通过filterName卸载（已做）
      */
-//    private String listFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#tomcatContext=instances[%s].filterMaps.array'";
-    private String listFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+\":\"+#this.filterName+\":\"+#filterConfigs[#a].filterClass):(null)}'";
-    private String unloadFilterByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals(\"%s\")},#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.removeFilterDef(#ms[#c].filterName),#c=#c+1}'";
+//    private String listFilterByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#tomcatContext=instances[%s].filterMaps.array'";
+    private String listFilterByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+\":\"+#this.filterName+\":\"+#filterConfigs[#a].filterClass):(null)}'";
+    private String unloadFilterByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals(\"%s\")},{(#ms.size!=0)?(#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.filterDefs.remove(#ms[#c].filterName),#c=#c+1}):\"unExist\"}'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @RequestMapping("/list")
     public JSONArray list() {
@@ -90,14 +90,26 @@ public class Filter {
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             int tomcatSiteCnt = getTomcatSiteCnt();
+            int failCnt = 0;
+            int notFoundCnt = 0;
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadFilterByVmtool , i , filterName);
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/filter/unload: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/filter/unload: {}" ,resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
+                } else if (resultStr.contains("unExist")) {
+                    logger.error(resultStr);
+                    notFoundCnt++;
                 }
+            }
+            if (failCnt == tomcatSiteCnt) {
+                return "OGNL execute failed";
+            }
+            if (notFoundCnt == tomcatSiteCnt) {
+                return "filterName not found";
             }
             return "success";
 

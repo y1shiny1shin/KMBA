@@ -125,12 +125,16 @@ public class CompHandler {
                     return new Socket().unload(target, extra);
                 }
             },
-            new Comp("executor",   "-u executor <className>") {
+            new Comp("executor",   "-u executor <gently|brutly> <className>") {
                 JSONArray list() {
                     return new Executor().list();
                 }
                 String unload(String target, String extra) {
-                    return new Executor().unloadGently(target);
+                    // 默认温柔卸载
+                    if ("brutly".equals(target)) {
+                        return new Executor().unloadBrutly(extra);
+                    }
+                    return new Executor().unloadGently(extra);
                 }
             },
             new Comp("upgrade",    "-u upgrade <upgradeName>") {
@@ -151,15 +155,35 @@ public class CompHandler {
             System.out.println(buildHelp());
             return;
         }
-        // proxyValve / thread / socket 需要额外参数校验
+        // proxyValve / thread / socket / executor 需要额外参数校验
         if (extra == null) {
-            if ("proxyValve".equals(type) || "thread".equals(type) || "socket".equals(type)) {
-                System.out.println("用法: cli <pid> " + c.help);
+            if ("proxyValve".equals(type) || "thread".equals(type) || "socket".equals(type)
+                    || "executor".equals(type)) {
+                System.out.println("Usage: cli <pid> " + c.help);
                 return;
             }
         }
         String result = c.unload(target, extra);
-        System.out.println(result);
+        // 统一格式化卸载结果
+        switch (result) {
+            case "success":
+                System.out.println("[+] unload success");
+                break;
+            case "OGNL execute failed":
+                System.out.println("[!] unload failed: OGNL execute failed");
+                break;
+            case "filterName not found":
+                System.out.println("[!] filterName not found");
+                break;
+            case "Listener is empty":
+                System.out.println("[!] Listener is empty");
+                break;
+            case "Listener is not exist":
+                System.out.println("[!] Listener is not exist");
+                break;
+            default:
+                System.out.println(result);
+        }
     }
 
     // ──── jad ────
@@ -173,7 +197,7 @@ public class CompHandler {
         String checkResult = jad.check(className);
 
         if ("dont".equals(checkResult)) {
-            System.out.println("[!] 类不存在: " + className);
+            System.out.println("[!] class not found: " + className);
             return;
         }
 
@@ -182,11 +206,11 @@ public class CompHandler {
             return;
         }
 
-        System.out.println("[*] 类 " + className + " 存在多个版本，正在枚举...");
+        System.out.println("[*] class " + className + " has multiple versions, enumerating...");
 
         JSONArray hashes = jad.hashcode(className);
         if (hashes == null || hashes.isEmpty()) {
-            System.out.println("[!] 未能获取 ClassLoaderHash");
+            System.out.println("[!] failed to get ClassLoaderHash");
             return;
         }
 
@@ -231,7 +255,7 @@ public class CompHandler {
         JAD jad = new JAD();
         String check = jad.check(className);
         if ("dont".equals(check)) {
-            System.out.println("[-] 目标类不存在: " + className);
+            System.out.println("[-] target class not found: " + className);
             return;
         }
         JSONArray hashes = jad.hashcode(className);
@@ -240,7 +264,7 @@ public class CompHandler {
             printVmtoolResult(result);
             return;
         }
-        System.out.println("[*] 类 " + className + " 存在 " + hashes.size() + " 个实例:\n");
+        System.out.println("[*] class " + className + " has " + hashes.size() + " instances:\n");
 
         for (int i = 0; i < hashes.size(); i++) {
             JSONObject info = hashes.getJSONObject(i);
@@ -249,7 +273,7 @@ public class CompHandler {
                     info.getString("classLoaderHash"),
                     info.getString("class-info"));
         }
-        System.out.println("\n请选择其中一个 classLoaderHash 重新执行:");
+        System.out.println("\nPlease select a classLoaderHash and re-run:");
         System.out.println("  java -jar KMBA.jar cli <pid> -vmtool " + className + " <classLoaderHash>");
     }
 
@@ -360,7 +384,8 @@ public class CompHandler {
     }
 
     // 按名称查找组件
-    private static Comp findComp(String name) {
+    // 按名称查找组件（包级可见，CliHandler 参数校验也会用到）
+    static Comp findComp(String name) {
         for (Comp c : COMPS) {
             if (c.name.equals(name)) return c;
         }

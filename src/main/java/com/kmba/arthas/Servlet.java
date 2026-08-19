@@ -31,12 +31,12 @@ import static com.kmba.Utils.Dict.getTomcatSiteCnt;
 @RestController
 @RequestMapping("/servlet")
 public class Servlet {
-//    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[].servletMappings";
+//    String listServletByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[].servletMappings";
     /**
      * list处，增加了null值的处理，结合前两版的优点
      */
-    String listServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet(),((#tmpValue==null)?(#outValue=#maps.get(#key)):(#outValue=#tmpValue.class.getName()))),#key+\":\"+#outValue}'";
-    String unloadServletByVmtool = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].removeServletMapping(\"%s\")'";
+    String listServletByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#context=instances[%s],#maps=#context.servletMappings,#maps.entrySet().{(#value=#this.value,#key=#this.key,#tmpValue=#context.findChild(#value).getServlet(),((#tmpValue==null)?(#outValue=#maps.get(#key)):(#outValue=#tmpValue.class.getName()))),#key+\":\"+#outValue}'";
+    String unloadServletByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].removeServletMapping(\"%s\")'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @RequestMapping("/list")
     public JSONArray list(){
@@ -87,15 +87,20 @@ public class Servlet {
         try {
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             int tomcatSiteCnt = getTomcatSiteCnt();
+            int failCnt = 0;
             for (int i = 0; i < tomcatSiteCnt; i++) {
                 String cmd = String.format(unloadServletByVmtool, i ,urlPath);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/servlet/unload: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/servlet/unload: {}" ,resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == tomcatSiteCnt) {
+                return "OGNL execute failed";
             }
 
         } catch (Exception e) {

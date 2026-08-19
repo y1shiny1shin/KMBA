@@ -30,6 +30,7 @@ public class SpringMvcController {
     /**
      * 需要适配高版本SpringMvc的注入方式
      *
+     * https://github.com/d0ctorsec/LearnJavaMemshellFromZero-Recurrence
      * =====
      * registerMapping
      * // 1. 从当前上下文环境中获得 RequestMappingHandlerMapping 的实例 bean
@@ -65,11 +66,11 @@ public class SpringMvcController {
      */
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private String listSMCByVmtool = "vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext -classLoader %s --express '#map=instances[%s].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField(\"m\"),#class.setAccessible(true),#class.get(#map)'";
+    private String listSMCByVmtool = "vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext -classLoader %s --express '#map=instances[%s].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField(\"m\"),#class.setAccessible(true),#class.get(#map)'";
     //@LinkedHashMap[
     //    @String[/exec]:@evalController[com.DemoSpring.evalController@25655ffa],
     //]
-    private String unloadSMCByVmtool = "vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext -classLoader %s --express '#map=instances[%s].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField(\"m\"),#class.setAccessible(true),#class.get(#map).remove(\"%s\")'";
+    private String unloadSMCByVmtool = "vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext -classLoader %s --express '#map=instances[%s].getBean(@org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping@class).handlerMap,#class=#map.getClass().getDeclaredField(\"m\"),#class.setAccessible(true),#class.get(#map).remove(\"%s\")'";
 
     @RequestMapping("/list")
     public JSONArray list(){
@@ -126,18 +127,26 @@ public class SpringMvcController {
             int springCnt = Util.getSpringCnt();
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
+            int failCnt = 0;
             for (int i = 0 ; i<springCnt ;i++){
                 // 每个实例都需要动态获取 classLoader 后指定
                 String classLoader = Util.getClassLoader("org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext", i, wrapper);
-                if (classLoader == null) continue;
+                if (classLoader == null) {
+                    failCnt++;
+                    continue;
+                }
                 String cmd = String.format(unloadSMCByVmtool, classLoader, i ,urlPath);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/SpringMvcController/unload: {}" , result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/SpringMvcController/unload: {}" , resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == springCnt) {
+                return "OGNL execute failed";
             }
             return "success";
         } catch (Exception e){

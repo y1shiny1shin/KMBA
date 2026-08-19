@@ -5,3 +5,8 @@
 已做：start.bat 等启动脚本待优化
 已做：需要完整优化Arthas启动逻辑，防止联网更新导致启动失败（出现严重问题，arthas-boot不是完整包，麻蛋）
 已做：排查nullpointer报错：连接远程通信失败，但是仍然进入了后续逻辑，故而导致了nullpointer
+优化Spring Cloud Gateway 3.1.0环境下的WebFluxHandlerMethod内存马的查杀，检测已经没问题
+支持Weblogic 12.2.1.3下的相关内存马查杀
+支持高版本Spring下的SpringMvcController内存马
+已做：优化SpringFluxHandlerMethod的卸载逻辑
+支持Jetty内存马

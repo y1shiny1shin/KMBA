@@ -28,8 +28,8 @@ import static com.kmba.Utils.Dict.*;
 @RestController
 @RequestMapping("/upgrade")
 public class Upgrade {
-    private String listUpgradeByVmtool = "vmtool --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances[%s].httpUpgradeProtocols'";
-    private String unloadUpgradeByVmtool = "vmtool --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances[%s].httpUpgradeProtocols.remove(\"%s\")'";
+    private String listUpgradeByVmtool = "vmtool -l -1 --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances[%s].httpUpgradeProtocols'";
+    private String unloadUpgradeByVmtool = "vmtool -l -1 --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances[%s].httpUpgradeProtocols.remove(\"%s\")'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     @RequestMapping("/list")
@@ -39,7 +39,7 @@ public class Upgrade {
 
             String resultAll = Util.getListResult(Dict.getTomcatSiteCnt() ,listUpgradeByVmtool);
 
-            String regex = "\\@String\\[(\\w+)\\]\\:\\@(\\w+)\\[([0-9a-zA-Z.$_]+)\\@";
+            String regex = "\\@String\\[(.*?)\\]\\:\\@(.*?)\\[([0-9a-zA-Z.$_/]+)\\@";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -66,15 +66,20 @@ public class Upgrade {
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
             int tomcatSiteCnt = Dict.getTomcatSiteCnt();
+            int failCnt = 0;
             for (int i=0;i<tomcatSiteCnt;i++){
                 String cmd = String.format(unloadUpgradeByVmtool, i ,upgradeName);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/upgrade/unload: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/upgrade/unload: {}" ,resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == tomcatSiteCnt) {
+                return "OGNL execute failed";
             }
             return "success";
         } catch (Exception e){

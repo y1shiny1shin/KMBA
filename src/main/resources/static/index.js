@@ -480,6 +480,29 @@ function renderCode(src){
     try { Prism.highlightElement(codeEl); } catch (_) {}
 }
 
+// 统一渲染卸载结果（处理各模块自定义的返回状态）
+function renderUnloadResult(op, res, label){
+    switch (res){
+        case 'success':
+            dock.update(op, { level:'ok', time: nowTime(), msg:'卸载成功: ' + label });
+            break;
+        case 'OGNL execute failed':
+            dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败(OGNL 执行失败): ' + label });
+            break;
+        case 'filterName not found':
+            dock.update(op, { level:'warn', time: nowTime(), msg:'未找到该 filterName: ' + label });
+            break;
+        case 'Listener is empty':
+            dock.update(op, { level:'warn', time: nowTime(), msg:'Listener 列表为空: ' + label });
+            break;
+        case 'Listener is not exist':
+            dock.update(op, { level:'warn', time: nowTime(), msg:'该 Listener 不存在: ' + label });
+            break;
+        default:
+            dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败: ' + label + '\n' + res });
+    }
+}
+
 const ui = {
     async select(id){
         state.selected = id;
@@ -648,9 +671,7 @@ const ui = {
             const qs = new URLSearchParams();
             if (u.params) u.params(qs, row);
             const res = (await apiText(url + '?' + qs.toString())).trim();
-            if (res === 'success') dock.update(op, { level:'ok', time: nowTime(), msg:'卸载成功: ' + label });
-            else if (res === 'OGNL execute failed') dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败(OGNL 执行失败): ' + label });
-            else dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败: ' + label + '\n' + res });
+            renderUnloadResult(op, res, label);
             await ui.refreshModule(moduleId);
             return;
         }
@@ -677,9 +698,7 @@ const ui = {
             return;
         }
         const res = (await apiText(url + '?' + qs.toString())).trim();
-        if (res === 'success') dock.update(op, { level:'ok', time: nowTime(), msg:'卸载成功: ' + label });
-        else if (res === 'OGNL execute failed') dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败(OGNL 执行失败): ' + label });
-        else dock.update(op, { level:'err', time: nowTime(), msg:'卸载失败: ' + label + '\n' + res });
+        renderUnloadResult(op, res, label);
         await ui.refreshModule(moduleId);
     },
 

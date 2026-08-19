@@ -13,20 +13,20 @@ public class Util {
     // 日志
     private static Logger logger = LoggerFactory.getLogger(Util.class.getName());
     // 获取tomcat运行了几个站点
-    public static String getTomcatSiteCntExpress = "vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances.length'";
-    public static String getTimerCntExpress = "vmtool --action getInstances --className java.util.Timer --express 'instances.length'";
-    public static String getThreadCntExpress = "vmtool --action getInstances --className java.lang.Thread --express 'instances.length'";
-    public static String getSocketCntExpress = "vmtool --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express 'instances.length'";
-    public static String getEndpointCntExpress = "vmtool --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express 'instances.length'";
-    public static String getSpringCntExpress = "vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances.length'";
+    public static String getTomcatSiteCntExpress = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances.length'";
+    public static String getTimerCntExpress = "vmtool -l -1 --action getInstances --className java.util.Timer --express 'instances.length'";
+    public static String getThreadCntExpress = "vmtool -l -1 --action getInstances --className java.lang.Thread --express 'instances.length'";
+    public static String getSocketCntExpress = "vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express 'instances.length'";
+    public static String getEndpointCntExpress = "vmtool -l -1 --action getInstances --className org.apache.tomcat.util.net.NioEndpoint --express 'instances.length'";
+    public static String getSpringCntExpress = "vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances.length'";
     public static String getSpringFluxCntExpress = "vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances.length'";
-    public static String getNettyServerCntExpress = "vmtool --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express 'instances.length'";
-    public static String getHttpServerConfigCntExpress = "vmtool --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.length'";
+    public static String getNettyServerCntExpress = "vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express 'instances.length'";
+    public static String getHttpServerConfigCntExpress = "vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.length'";
 
     private static final Pattern INTEGER_PATTERN =
             Pattern.compile("@Integer\\[(\\d+)]");
     // 获取实例的 classLoader 类名，获取后再通过 -classLoader 指定
-    private static final String getClassLoaderByVmtool = "vmtool --action getInstances --className %s --express 'instances[%s].getClass.getClassLoader.getClass.name'";
+    private static final String getClassLoaderByVmtool = "vmtool -l -1 --action getInstances --className %s --express 'instances[%s].getClass.getClassLoader.getClass.name'";
 
     private static int executeCountCommand(String command, String metricName) {
         try {

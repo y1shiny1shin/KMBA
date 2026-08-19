@@ -28,9 +28,12 @@ public class Thread {
      * 歪打正着地解决了问题，本来停止thread，原thread是不会从thread[]中删除的
      * 但是由于停止了线程，线程target就变为null，会导致vmtool执行ognl表达式失败
      * 那么就不会返回值，luckly
+     *
+     * ====
+     * 上面的做法是不对的，既然停止了现场，那target变为null，只需要再list的时候，指定target为null的就不输出就可以
      */
-    private String listThreadByVmtool = "vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[%s],#className=#thread.target.getClass.getName(),#threadName=#thread.name,#threadName+\":\"+#className'";
-    private String unloadThreadByVmtool = "vmtool --action getInstances --className java.lang.Thread --express '#thread=instances[%s],#threadName=#thread.name,#className=#thread.target.getClass().getName(),{#threadName.equals(\"%s\")&&#className.equals(\"%s\")?#thread.interrupt():null}'";
+    private String listThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.target!=null)},#ts.{#ts0=#this,#tName=#ts0.name,#tClassName,{(#ts0.target==null)?(null):(#tClassName=#ts0.target.getClass().getName())},#tName+\":\"+#tClassName}'";
+    private String unloadThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?#this.target!=null},#ts.{#thread=#this,#className=#thread.target.getClass().getName(),#threadName=#thread.name,{#threadName.equals(\"%s\")&&#className.equals(\"%s\")?#thread.interrupt():null}}'";
     // 线程
 
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
@@ -38,11 +41,13 @@ public class Thread {
     public JSONArray list(){
         try{
             JSONArray jsonArray = new JSONArray();
-            int threadCnt = Util.getThreadCnt();
 
-            String resultAll = Util.getListResult(threadCnt ,listThreadByVmtool);
+            String resultAll = Util.getListResult(1 ,listThreadByVmtool);
 
-            String regex = "\\@String\\[(.*?)\\:([0-9a-zA-Z.$_]+)\\]";
+            /**
+             * @String[mcp-keep-alive-scheduler:java.util.concurrent.ThreadPoolExecutor$Worker@3bb99711[State = 0, empty queue]],
+             */
+            String regex = "\\@String\\[(.*?)\\:([0-9a-zA-Z.$_/]+)\\]";
             Pattern pattern = Pattern.compile(regex);
             Matcher matcher = pattern.matcher(resultAll);
 
@@ -69,15 +74,20 @@ public class Thread {
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             int threadCnt = Util.getThreadCnt();
 
+            int failCnt = 0;
             for (int i = 0; i < threadCnt; i++) {
-                String cmd = String.format(unloadThreadByVmtool, i , threadName , className);
+                String cmd = String.format(unloadThreadByVmtool , threadName , className);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/thread/unload: {}" ,result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/thread/unload: {}" ,resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == threadCnt) {
+                return "OGNL execute failed";
             }
             return "success";
 

@@ -21,13 +21,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/arthas")
@@ -69,6 +72,8 @@ public class ArthasController {
                 closeGlobalWsWrapperQuietly();
             }, "kmba-arthas-shutdown-hook"));
             hookRegistered = true;
+            // 清理上次异常退出残留的临时文件
+            cleanupStaleTempFiles();
         }
     }
 
@@ -131,17 +136,13 @@ public class ArthasController {
             captureMainThreadIfNeeded();
 
             final Process bootProc = startLocalArthasBoot(pid);
-            if (bootProc == null || !bootProc.isAlive()) {
-                return "error: failed to start local arthas-boot";
-            }
             localArthasProcess = bootProc;
             startMainThreadGuard(bootProc, pid);
 
-            if (!waitPortOpen("127.0.0.1", LOCAL_WS_PORT, 30000)) {
-                String tail = readLastLines(lastArthasBootLog, 30);
-                logger.error("arthas-boot did not open ws port {} in time. Last output:\n{}", LOCAL_WS_PORT, tail);
-                return "error: local arthas ws port not ready: " + LOCAL_WS_PORT
-                        + (tail.isEmpty() ? "" : "\n--- arthas-boot output ---\n" + tail);
+            // 等待 attach 完成，期间检测典型失败（进程不存在等）快速返回
+            String waitError = waitForArthasReady(bootProc, pid);
+            if (waitError != null) {
+                return waitError;
             }
             ArthasWsWrapper.setGlobalAgentInfo("127.0.0.1", LOCAL_WS_PORT);
             try {
@@ -224,6 +225,7 @@ public class ArthasController {
             if (waitForPortRelease(LOCAL_WS_PORT, 8000)) {
                 // agent 已优雅停止，清理 boot 进程
                 killBootProcess();
+                cleanupArthasTempFiles();
                 return true;
             }
             logger.warn("arthas agent did not stop gracefully after 8s, falling back to force kill");
@@ -233,7 +235,9 @@ public class ArthasController {
         killBootProcess();
 
         // Step 3: 再等一次端口释放（boot 进程退出后 agent 可能也会退出）
-        return waitForPortRelease(LOCAL_WS_PORT, 3000);
+        boolean released = waitForPortRelease(LOCAL_WS_PORT, 3000);
+        cleanupArthasTempFiles();
+        return released;
     }
 
     /**
@@ -273,6 +277,112 @@ public class ArthasController {
             } finally {
                 localArthasProcess = null;
             }
+        }
+    }
+
+    /**
+     * 停止 arthas 后清理临时文件（arthas-home 解压目录、boot jar、boot 日志），
+     * 避免 /tmp 下残留大量 kmba-arthas-* 文件
+     */
+    private static void cleanupArthasTempFiles() {
+        String home = cachedArthasHome;
+        if (home != null) {
+            try {
+                deleteRecursively(Paths.get(home));
+            } catch (Exception e) {
+                logger.warn("Failed to delete arthas home temp dir: {}", e.getMessage());
+            }
+            cachedArthasHome = null;
+        }
+        String bootPath = cachedArthasBootPath;
+        if (bootPath != null) {
+            try {
+                Files.deleteIfExists(Paths.get(bootPath));
+            } catch (Exception e) {
+                logger.warn("Failed to delete arthas boot jar: {}", e.getMessage());
+            }
+            cachedArthasBootPath = null;
+        }
+        if (lastArthasBootLog != null) {
+            try {
+                Files.deleteIfExists(lastArthasBootLog);
+            } catch (Exception ignored) {
+            }
+            lastArthasBootLog = null;
+        }
+        // 目标 JVM 中 arthas 的 vmtool 会将 JNI 库复制到 tmpdir 后加载且从不删除，
+        // 停止时一并清理（POSIX 下已加载的库可安全 unlink，Windows 上被锁定时删除失败忽略）
+        cleanupArthasJniTmpFiles();
+    }
+
+    /**
+     * 递归删除目录（单个文件删除失败时忽略，例如 Windows 上被锁定的 dll）
+     */
+    private static void deleteRecursively(Path dir) {
+        if (!Files.exists(dir)) return;
+        try (Stream<Path> walk = Files.walk(dir)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (Exception ignored) {
+                }
+            });
+        } catch (Exception e) {
+            logger.warn("Failed to walk temp dir {}: {}", dir, e.getMessage());
+        }
+    }
+
+    /**
+     * 启动时清理历史残留的 kmba-arthas-* 临时文件（上次异常退出留下的）
+     */
+    private static void cleanupStaleTempFiles() {
+        String tmp = System.getProperty("java.io.tmpdir");
+        if (tmp == null || tmp.isEmpty()) return;
+        try {
+            Path tmpDir = Paths.get(tmp);
+            if (!Files.isDirectory(tmpDir)) return;
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(tmpDir, "kmba-arthas-*")) {
+                for (Path p : ds) {
+                    try {
+                        if (Files.isDirectory(p)) {
+                            deleteRecursively(p);
+                        } else {
+                            Files.deleteIfExists(p);
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+            // 上次异常退出时，arthas 的 JNI 库 tmp 文件也无法被清理
+            cleanupArthasJniTmpFiles();
+        } catch (Exception e) {
+            logger.warn("Failed to clean stale arthas temp files: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 清理 arthas vmtool 在 tmpdir 中创建的 ArthasJniLibrary*.tmp 残留文件。
+     * 该类文件由目标 JVM 中的 arthas 生成（vmtool 初始化时将 JNI 库复制到
+     * 临时文件后 System.load），arthas 自身不删除，只能由 KMBA 清理。
+     */
+    private static void cleanupArthasJniTmpFiles() {
+        String tmp = System.getProperty("java.io.tmpdir");
+        if (tmp == null || tmp.isEmpty()) return;
+        try {
+            Path tmpDir = Paths.get(tmp);
+            if (!Files.isDirectory(tmpDir)) return;
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(tmpDir, "ArthasJniLibrary*.tmp")) {
+                for (Path p : ds) {
+                    try {
+                        Files.deleteIfExists(p);
+                        logger.debug("Cleaned arthas jni tmp file: {}", p);
+                    } catch (Exception ignored) {
+                        // Windows 上文件可能被目标 JVM 锁定，删除失败忽略，下次启动再清理
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to clean arthas jni tmp files: {}", e.getMessage());
         }
     }
 
@@ -341,6 +451,58 @@ public class ArthasController {
             }
         }
         return false;
+    }
+
+    /**
+     * 等待 arthas-boot attach 完成（WS 端口就绪）。
+     * 等待期间监控 boot 进程状态与日志内容，典型失败快速返回：
+     * - 日志出现 "No such process" 等 attach 失败特征 → process not found
+     * - boot 进程提前退出 → 返回退出原因
+     * - 超时未就绪 → 返回超时错误
+     *
+     * @return null 端口就绪，否则返回错误信息
+     */
+    private String waitForArthasReady(Process bootProc, String pid) {
+        long deadline = System.currentTimeMillis() + 30000;
+        while (System.currentTimeMillis() < deadline) {
+            // 端口已就绪
+            if (isPortReachable("127.0.0.1", LOCAL_WS_PORT, 300)) {
+                return null;
+            }
+            String tail = readLastLines(lastArthasBootLog, 40);
+            // 目标进程不存在 / 无法 attach
+            if (containsAttachFailure(tail)) {
+                logger.error("arthas-boot failed to attach pid {}. Last output:\n{}", pid, tail);
+                return "error: process not found or not attachable (pid=" + pid + ")";
+            }
+            // boot 进程提前退出
+            if (!bootProc.isAlive()) {
+                logger.error("arthas-boot exited unexpectedly. Last output:\n{}", tail);
+                return "error: arthas-boot exited unexpectedly (pid=" + pid + ")"
+                        + (tail.isEmpty() ? "" : "\n--- arthas-boot output ---\n" + tail);
+            }
+            try {
+                java.lang.Thread.sleep(150);
+            } catch (InterruptedException ie) {
+                java.lang.Thread.currentThread().interrupt();
+                return "error: interrupted while waiting for arthas";
+            }
+        }
+        // 超时未就绪
+        String tail = readLastLines(lastArthasBootLog, 30);
+        logger.error("arthas-boot did not open ws port {} in time. Last output:\n{}", LOCAL_WS_PORT, tail);
+        return "error: local arthas ws port not ready: " + LOCAL_WS_PORT
+                + (tail.isEmpty() ? "" : "\n--- arthas-boot output ---\n" + tail);
+    }
+
+    /**
+     * 判断 arthas-boot 日志是否包含典型 attach 失败特征
+     */
+    private static boolean containsAttachFailure(String log) {
+        if (log == null || log.isEmpty()) return false;
+        return log.contains("No such process")
+                || log.contains("AttachNotSupportedException")
+                || log.contains("not responding");
     }
 
     /**

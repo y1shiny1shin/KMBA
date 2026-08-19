@@ -30,13 +30,13 @@ import static com.kmba.Utils.Dict.Strict_Option;
 public class SpringMvcInterceptor {
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
-    private String listSMIByVmtool = "vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[%s].getBean(\"requestMappingHandlerMapping\").adaptedInterceptors'";
+    private String listSMIByVmtool = "vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express 'instances[%s].getBean(\"requestMappingHandlerMapping\").adaptedInterceptors'";
     //@HandlerInterceptor[][
     //    @ConversionServiceExposingInterceptor[org.springframework.web.servlet.handler.ConversionServiceExposingInterceptor@bc4fa53],
     //    @ResourceUrlProviderExposingInterceptor[org.springframework.web.servlet.resource.ResourceUrlProviderExposingInterceptor@3b2cfeff],
     //    @evilInterceptor[com.DemoSpring.evilInterceptor@34b9fcef],
     //]
-    private String unloadSMIByVmtool = "vmtool --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[%s].getBean(\"requestMappingHandlerMapping\"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!=\"%s\")?(#a=#this,#newais.add(#a)):null},#ahmClass=#rmhm.getClass().getSuperclass().getSuperclass().getSuperclass(),#f=#ahmClass.getDeclaredField(\"adaptedInterceptors\"),#f.setAccessible(true),#f.set(#rmhm,#newais)'";
+    private String unloadSMIByVmtool = "vmtool -l -1 --action getInstances --className org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext --express '#rmhm=instances[%s].getBean(\"requestMappingHandlerMapping\"),#oldais=#rmhm.adaptedInterceptors,#newais=new java.util.ArrayList(),#oldais.{(#this.class.getName()!=\"%s\")?(#a=#this,#newais.add(#a)):null},#ahmClass=#rmhm.getClass().getSuperclass().getSuperclass().getSuperclass(),#f=#ahmClass.getDeclaredField(\"adaptedInterceptors\"),#f.setAccessible(true),#f.set(#rmhm,#newais)'";
 
 
     @RequestMapping("/list")
@@ -89,15 +89,20 @@ public class SpringMvcInterceptor {
 
             OGNLUtils.setStrictModeClose();
 
+            int failCnt = 0;
             for (int i = 0 ; i<springCnt ;i++){
                 String cmd = String.format(unloadSMIByVmtool ,i ,className);
 
                 List<String> result = wrapper.runCmd(cmd);
-                logger.info("/SpringMvcInterceptor/unload: {}" , result);
-                if (!result.isEmpty() && result.get(0).contains("Failed to execute ognl")){
-                    logger.error(result.get(0));
-                    return "OGNL execute failed";
+                String resultStr = String.join("" ,result);
+                logger.info("/SpringMvcInterceptor/unload: {}" , resultStr);
+                if (resultStr.contains("Failed to execute ognl")){
+                    logger.error(resultStr);
+                    failCnt++;
                 }
+            }
+            if (failCnt == springCnt) {
+                return "OGNL execute failed";
             }
             return "success";
         } catch (Exception e){
