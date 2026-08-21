@@ -37,7 +37,7 @@ public class Upgrade {
         try{
             JSONArray jsonArray = new JSONArray();
 
-            String resultAll = Util.getListResult(Dict.getTomcatSiteCnt() ,listUpgradeByVmtool);
+            String resultAll = Util.getListResult(Util.getUpgradeCnt() ,listUpgradeByVmtool);
 
             String regex = "\\@String\\[(.*?)\\]\\:\\@(.*?)\\[([0-9a-zA-Z.$_/]+)\\@";
             Pattern pattern = Pattern.compile(regex);
@@ -65,9 +65,9 @@ public class Upgrade {
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
 
-            int tomcatSiteCnt = Dict.getTomcatSiteCnt();
+            int upgradeCnt = Util.getUpgradeCnt();
             int failCnt = 0;
-            for (int i=0;i<tomcatSiteCnt;i++){
+            for (int i=0;i<upgradeCnt;i++){
                 String cmd = String.format(unloadUpgradeByVmtool, i ,upgradeName);
 
                 List<String> result = wrapper.runCmd(cmd);
@@ -78,7 +78,7 @@ public class Upgrade {
                     failCnt++;
                 }
             }
-            if (failCnt == tomcatSiteCnt) {
+            if (failCnt == upgradeCnt) {
                 return "OGNL execute failed";
             }
             return "success";

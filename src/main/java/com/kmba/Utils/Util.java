@@ -26,6 +26,7 @@ public class Util {
     public static String getRMMCntExpress = "vmtool -l -1 --action getInstances --className org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping --express 'instances.length'";
     public static String getWeblogicCntExpress = "vmtool -l -1 --action getInstances --className weblogic.servlet.internal.WebAppServletContext --express 'instances.length'";
     public static String getJettyCntExpress = "vmtool -l -1 --action getInstances --className org.eclipse.jetty.servlet.ServletHandler --express 'instances.length'";
+    public static String getUpgradeCntExpress = "vmtool -l -1 --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances.length'";
 
 
     private static final Pattern INTEGER_PATTERN =
@@ -105,6 +106,10 @@ public class Util {
         return executeCountCommand(getJettyCntExpress ,"JettyCnt");
     }
 
+    public static int getUpgradeCnt() {
+        return executeCountCommand(getUpgradeCntExpress ,"UpgradeCnt");
+    }
+
 
     /**
      * 预热验证：建立 WebSocket 连接并发送一条命令，确认 Arthas 真正可用。
@@ -176,7 +181,7 @@ public class Util {
             String regex = "@String\\[(.*?)\\]";
             Matcher matcher = Pattern.compile(regex).matcher(result.get(0));
             if (matcher.find()) {
-                return matcher.group(2);
+                return matcher.group(1);
             }
         } catch (Exception e) {
             logger.error(e.getMessage());

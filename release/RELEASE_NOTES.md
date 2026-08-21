@@ -1,26 +1,25 @@
 ## 更新日志
 
-### v0.5
-- 通过Nacos 2.2.2、XXL-JOB 2.1.2、fastjson 1.2.24、Ruoyi 3.4.0、Shiro 1.2.4五种环境的测试
-- 优化proxyValve、classLoader逻辑，提升稳定性
-- 美化cli部分，现在更好看了
-- 优化大量输出逻辑，结果输出更直观
-- 主要针对memshell-party做适配
-- 解决大量已知bug
+### v0.6.1
+- 适配tongweb
+- 通过大量测试，适配GitHub中大量已经武器化的一键内存马工具
+- 修复大量bug，适配性大加强
+- 生产环境测试通过，对业务0影响
+- **修复代码审计出的逻辑漏洞**
 
 ---
 
 ## 📦 下载说明
 
-| 文件名                                 | 平台 | 说明 |
-|-------------------------------------|------|------|
-| `KMBA-*-win-amd64-with-jdk.zip`     | Windows x86_64 | 含 JDK 8，双击 `start.bat` 启动 |
-| `KMBA-*-win-arm64-with-jdk.zip`     | Windows ARM64 | 含 JDK 8，双击 `start.bat` 启动 |
-| `KMBA-*-macos-amd64-with-jdk.zip`   | macOS Intel | 含 JDK 8，运行 `./start.sh` 启动 |
-| `KMBA-*-macos-aarch64-with-jdk.zip` | macOS Apple Silicon | 含 JDK 8，运行 `./start.sh` 启动 |
-| `KMBA-*-linux-amd64-with-jdk.zip`   | Linux x86_64 | 含 JDK 8，运行 `./start.sh` 启动 |
-| `KMBA-*-linux-aarch64-with-jdk.zip` | Linux ARM64 | 含 JDK 8，运行 `./start.sh` 启动 |
-| `KMBA-*.jar`                        | 全平台 | 需自行安装 JDK 8+，`java -jar KMBA-0.3.jar` 启动 |
+| 文件名                                 | 平台 | 说明                                     |
+|-------------------------------------|------|----------------------------------------|
+| `KMBA-*-win-amd64-with-jdk.zip`     | Windows x86_64 | 含 JDK 8，双击 `start.bat` 启动              |
+| `KMBA-*-win-arm64-with-jdk.zip`     | Windows ARM64 | 含 JDK 8，双击 `start.bat` 启动              |
+| `KMBA-*-macos-amd64-with-jdk.zip`   | macOS Intel | 含 JDK 8，运行 `./start.sh` 启动             |
+| `KMBA-*-macos-aarch64-with-jdk.zip` | macOS Apple Silicon | 含 JDK 8，运行 `./start.sh` 启动             |
+| `KMBA-*-linux-amd64-with-jdk.zip`   | Linux x86_64 | 含 JDK 8，运行 `./start.sh` 启动             |
+| `KMBA-*-linux-aarch64-with-jdk.zip` | Linux ARM64 | 含 JDK 8，运行 `./start.sh` 启动             |
+| `KMBA-*.jar`                        | 全平台 | 需自行安装 JDK 8+，`java -jar KMBA-*.jar` 启动 |
 
 ### with-jdk 版本适用情况
 

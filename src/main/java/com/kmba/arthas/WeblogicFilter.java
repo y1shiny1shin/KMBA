@@ -2,6 +2,7 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kmba.Utils.OGNLUtils;
 import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
@@ -13,6 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.kmba.Utils.Dict.Strict_Option;
+import static com.kmba.Utils.Dict.Unsafe_Option;
 
 /**
  * 感谢前辈
@@ -85,7 +89,10 @@ public class WeblogicFilter {
             int weblogicCnt = Util.getWeblogicCnt();
 
             // options strict false：反射 setAccessible 在严格模式下被 OGNL 拒绝
-            wrapper.runCmd("options strict false");
+            wrapper.runCmd(Strict_Option);
+            wrapper.runCmd(Unsafe_Option);
+
+            OGNLUtils.setStrictModeClose();
 
             int removedCnt = 0;
             int failCnt = 0;

@@ -95,9 +95,9 @@ public class SpringMvcController {
             if (bootVer != null) {
                 // ---------- 高版本 Spring：注解式 Controller（按版本选择表达式） ----------
                 String lister = isBootAtLeast24(bootVer) ? listSMCByVmtool_high : listSMCByVmtool_31;
-                int smcCnt = Util.getRMMCnt();
+                int rmmCnt = Util.getRMMCnt();
                 List<String> result = new ArrayList<>();
-                for (int i = 0; i < smcCnt; i++) {
+                for (int i = 0; i < rmmCnt; i++) {
                     String classLoader = Util.getClassLoader(RMM_CLASS, i, wrapper);
                     if (classLoader == null) continue;
                     String cmd = String.format(lister, classLoader, i);
@@ -177,8 +177,8 @@ public class SpringMvcController {
                 boolean high = isBootAtLeast24(bootVer);
                 String unloader = high ? unloadSMCByVmtool_high : unloadSMCByVmtool_31;
                 String checker = high ? checkSMCByVmtool_high : checkSMCByVmtool_31;
-                int smcCnt = Util.getRMMCnt();
-                for (int i = 0; i < smcCnt; i++) {
+                int rmmCnt = Util.getRMMCnt();
+                for (int i = 0; i < rmmCnt; i++) {
                     String classLoader = Util.getClassLoader(RMM_CLASS, i, wrapper);
                     if (classLoader == null) {
                         failCnt++;
