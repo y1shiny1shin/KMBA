@@ -169,6 +169,7 @@ Nacos 2.2.2
 XXL-JOB 2.1.2
 fastjson 1.2.24
 Ruoyi 3.4.0
+Shiro 1.2.4
 
 ## 感谢
 

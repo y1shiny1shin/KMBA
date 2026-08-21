@@ -42,7 +42,7 @@ public class SpringFluxWebFilter {
      * 大致逻辑和Executor差不多，都是需要替换
      * unload 需要指定 classLoader，通过 Util.getClassLoader() 获取后再指定
      */
-    private String unloadSFWFbyVmtool = "vmtool -l -1 --action getInstances --className org.springframework.web.server.handler.FilteringWebHandler -classLoader %s --express '#handler=instances[%s],#chain=#handler.chain,#oldFilters=#chain.getFilters(),#newFilters=new java.util.ArrayList(),#oldFilters.{(#this.class.getName()!=\"%s\")?(#tmp=#this,#newFilters.add(#tmp)):(null)},#newChain=new org.springframework.web.server.handler.DefaultWebFilterChain(#chain.getHandler(),#newFilters),#f=#handler.getClass().getDeclaredField(\"chain\"),#f.setAccessible(true),#mod=#f.getClass.getDeclaredField(\"modifiers\"),#mod.setAccessible(true),#mod.setInt(#f,#f.getModifiers()&~@java.lang.reflect.Modifier@FINAL),#f.set(#handler,#newChain),#mod.setInt(#f,#f.getModifiers()&@java.lang.reflect.Modifier@FINAL)'";
+    private String unloadSFWFbyVmtool = "vmtool -l -1 --action getInstances --className org.springframework.web.server.handler.FilteringWebHandler -c %s --express '#handler=instances[%s],#chain=#handler.chain,#oldFilters=#chain.getFilters(),#newFilters=new java.util.ArrayList(),#oldFilters.{(#this.class.getName()!=\"%s\")?(#tmp=#this,#newFilters.add(#tmp)):(null)},#newChain=new org.springframework.web.server.handler.DefaultWebFilterChain(#chain.getHandler(),#newFilters),#f=#handler.getClass().getDeclaredField(\"chain\"),#f.setAccessible(true),#mod=#f.getClass.getDeclaredField(\"modifiers\"),#mod.setAccessible(true),#mod.setInt(#f,#f.getModifiers()&~@java.lang.reflect.Modifier@FINAL),#f.set(#handler,#newChain),#mod.setInt(#f,#f.getModifiers()&@java.lang.reflect.Modifier@FINAL)'";
 
     @RequestMapping("/list")
     public JSONArray list() {
@@ -95,7 +95,7 @@ public class SpringFluxWebFilter {
                 String resultStr = String.join("" ,result);
                 logger.info("/SpringFluxWebFilter/unload: {}" , resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    logger.error(resultStr);
+                    
                     failCnt++;
                 }
             }

@@ -74,7 +74,7 @@ public class Upgrade {
                 String resultStr = String.join("" ,result);
                 logger.info("/upgrade/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    logger.error(resultStr);
+                    
                     failCnt++;
                 }
             }

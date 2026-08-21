@@ -781,3 +781,64 @@ vmtool -l -1 --action getInstances --className org.apache.catalina.core.Standard
 
 vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express '#maps,#registry=instances[0].this$0.handler.httpHandler.delegate.delegate.delegate.delegate.getHandlerMappings().{(#this.class.getName.contains("RequestMappingHandlerMapping"))?(#maps=#this):(null)},#routes=#maps.getHandlerMethods(),#routes.keys.{(#tmpkey=#this,#routes.get(#tmpkey).toString().contains("/exec"))?(#maps.mappingRegistry.unregister(#tmpkey)):(null)}'
 
+
+vmtool --action getInstances --className org.springframework.core.SpringVersion --express '@org.springframework.core.SpringVersion@getVersion()'
+
+
+vmtool --action getInstances --className org.springframework.boot.SpringBootVersion --express '@org.springframework.boot.SpringBootVersion@getVersion()'
+
+
+vmtool -l -1 --action getInstances --className org.springframework.core.SpringVersion -classLoader %s --express '@org
+.springframework.core.SpringVersion@getVersion()'
+
+
+
+vmtool -l -1 --action getInstances --className org.springframework.core.SpringVersion -classLoader sun.misc.Launcher$AppClassLoader --express '@org.springframework.core.SpringVersion@getVersion()'
+
+
+
+vmtool -l -1 --action getInstances --className org.springframework.web.servlet.DispatcherServlet -classLoader sun.misc.Launcher$AppClassLoader --express '@org.springframework.web.servlet.DispatcherServlet@class.getPackage().getImplementationVersion()'
+
+
+
+vmtool -l -1 --action getInstances --className weblogic.servlet.internal.WebAppServletContext --express '#ctx=instances[%s],#em=#ctx.eventsManager,#fs=#em.getClass().getDeclaredFields().{? #this.getType().getName().equals("java.util.List")},#fs.{(#f=#this,#f.setAccessible(true),#l=#f.get(#em)),#l.removeAll(#l.{? #this.getClass().getName().contains("%s")})},#f2=#em.getClass().getDeclaredField("hasRequestListeners"),#f2.setAccessible(true),#f3=#em.getClass().getDeclaredField("requestListeners"),#f3.setAccessible(true),(#f3.get(#em).size()==0)?(#f2.setBoolean(#em,false)):null,"done"'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoader java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#basicField=#pip.class.getDeclaredField("basic"),#basicField.setAccessible(true),#basic=#basicField.get(#pip),{(#basic.class.name.equals("%s"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#basic),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#basicField.set(#pip,#value)):("false")}):("failed")}'
+
+
+
+classloader -l | grep taobao
+
+
+ognl -c d3c5c21 '#field = @com.taobao.arthas.core.util.reflect.FieldUtils@getDeclaredField(Class.forName("ognl.OgnlRuntime"),"_useStricterInvocation",true), #modifiers = @com.taobao.arthas.core.util.reflect.FieldUtils@getDeclaredField(#field.getClass(),"modifiers",true),#modifiers.setInt(#field, #field.getModifiers() & ~@java.lang.reflect.Modifier@FINAL),#field.set(null,false)'
+
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext -classLoader java.net.URLClassLoader --express '#pip=instances[0].getPipeline,#firstField=#pip.class.getDeclaredField("first"),#firstField.setAccessible(true),#first=#firstField.get(#pip),{(#first.class.name.equals("%s"))?(#evil=@java.lang.reflect.Proxy@getInvocationHandler(#first),#f=#evil.class.getDeclaredFields().{(#this.setAccessible(true),#value=#this.get(#evil),#value instanceof org.apache.catalina.Valve)?(#firstField.set(#pip,#value)):("false")}):("failed")}'
+
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[0].getClass.getClassLoader.getClass.name'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '@java.lang.System@identityHashCode(instances[0].getClass.getClassLoader())'
+
+
+vmtool --action getInstances --className org.apache.catalina.core.StandardContext --express '@java.lang.Integer@toHexString(@java.lang.System@identityHashCode(instances[0].getClass().getClassLoader()))'
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[0],#keys=#container.configExactMatchMap.keySet().toArray(),#keys.length>0?(#v=#container.configExactMatchMap.get(#keys[0]),#hasCfg=#v.getClass().getMethods().{? #this.getName().equals("getConfig")}.size>0,#keys.{(#k=#this,#m=#container.configExactMatchMap.get(#k),#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#k+":"+#cls)}):"EMPTY"'
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#u="%s",#c="%s",#m=#container.configExactMatchMap.get(#u),#m==null?"notfound":(#hasCfg=#m.getClass().getMethods().{? #this.getName().equals("getConfig")}.size>0,#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#cls.getName().equals(#c)?(#container.configExactMatchMap.remove(#u),"left="+#container.configExactMatchMap.containsKey(#u)):"mismatch")'
+
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#u="/websocket/drawboard",#c="websocket.drawboard.DrawboardEndpoint",#m=#container.configExactMatchMap.get(#u),#m==null?"notfound":(#hasCfg=#m.getClass().getMethods().{? #this.getName().equals("getConfig")}.size>0,#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#cls.getName().equals(#c)?(#container.configExactMatchMap.remove(#u),"left="+#container.configExactMatchMap.containsKey(#u)):"mismatch")'
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#keys=#container.configExactMatchMap.keySet().toArray(),#keys.length>0?(#v=#container.configExactMatchMap.get(#keys[0]),#hasCfg=#v.getClass().getMethods().{? #this.getName().equals("getConfig")}.size>0,#keys.{(#k=#this,#m=#container.configExactMatchMap.get(#k),#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#k+":"+#cls)}):"EMPTY"'
+
+
+vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[%s].getPipeline,#pc=@java.lang.reflect.Proxy@class,#ff=#pip.class.getDeclaredField(\"%s\"),#ff.setAccessible(true),#v=#ff.get(#pip),#v==null?\"EMPTY\":(#pc.isAssignableFrom(#v.class)?(#h=#v.h,#h.class.name.equals(\"%s\")?(#found=#h.class.getDeclaredFields().{? (#f=#this,#f.setAccessible(true),#fval=#f.get(#h),#fval!=null?#ff.getType().isAssignableFrom(#fval.class):false)},#found.size>0?(#ff.set(#pip,#found[0].get(#h)),\"left=\"+#pc.isAssignableFrom(#ff.get(#pip).class)+\",restored=\"+#ff.get(#pip).class.name):\"novalve\"):\"notfound\"):\"notproxy\")'

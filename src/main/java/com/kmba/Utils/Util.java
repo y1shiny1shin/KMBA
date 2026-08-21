@@ -1,5 +1,6 @@
 package com.kmba.Utils;
 
+import com.kmba.arthas.TongWeb;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,11 +23,16 @@ public class Util {
     public static String getSpringFluxCntExpress = "vmtool -action getInstances --className org.springframework.web.server.handler.FilteringWebHandler --express '#handler=instances.length'";
     public static String getNettyServerCntExpress = "vmtool -l -1 --action getInstances --className 'org.springframework.boot.web.embedded.netty.NettyWebServer$1' --express 'instances.length'";
     public static String getHttpServerConfigCntExpress = "vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig --express 'instances.length'";
+    public static String getRMMCntExpress = "vmtool -l -1 --action getInstances --className org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping --express 'instances.length'";
+    public static String getWeblogicCntExpress = "vmtool -l -1 --action getInstances --className weblogic.servlet.internal.WebAppServletContext --express 'instances.length'";
+    public static String getJettyCntExpress = "vmtool -l -1 --action getInstances --className org.eclipse.jetty.servlet.ServletHandler --express 'instances.length'";
+
 
     private static final Pattern INTEGER_PATTERN =
             Pattern.compile("@Integer\\[(\\d+)]");
     // 获取实例的 classLoader 类名，获取后再通过 -classLoader 指定
-    private static final String getClassLoaderByVmtool = "vmtool -l -1 --action getInstances --className %s --express 'instances[%s].getClass.getClassLoader.getClass.name'";
+//    private static final String getClassLoaderByVmtool = "vmtool -l -1 --action getInstances --className %s --express 'instances[%s].getClass.getClassLoader.getClass.name'";
+    private static final String getClassLoaderByVmtool = "vmtool --action getInstances --className %s --express '@java.lang.Integer@toHexString(@java.lang.System@identityHashCode(instances[%s].getClass().getClassLoader()))";
 
     private static int executeCountCommand(String command, String metricName) {
         try {
@@ -87,6 +93,18 @@ public class Util {
         return executeCountCommand(getHttpServerConfigCntExpress ,"HttpServerConfigCnt");
     }
 
+    public static int getRMMCnt() {
+        return executeCountCommand(getRMMCntExpress ,"RMMCnt");
+    }
+
+    public static int getWeblogicCnt() {
+        return executeCountCommand(getWeblogicCntExpress ,"WeblogicCnt");
+    }
+
+    public static int getJettyCnt() {
+        return executeCountCommand(getJettyCntExpress ,"JettyCnt");
+    }
+
 
     /**
      * 预热验证：建立 WebSocket 连接并发送一条命令，确认 Arthas 真正可用。
@@ -99,6 +117,10 @@ public class Util {
             try {
                 ArthasWsWrapper.getWrapper().runCmd("help");
                 logger.info("checkConnect success {}:{}" ,ip ,port);
+
+                TongWeb.reset();
+                TongWeb.isTongWeb(ArthasWsWrapper.getWrapper());
+
                 return true;
             } catch (Exception e) {
                 logger.warn("checkConnect retry {}/{}: {}", retry + 1, maxRetry, e.getMessage());
@@ -148,11 +170,13 @@ public class Util {
             List<String> result = wrapper.runCmd(cmd);
             if (result == null || result.isEmpty()) return null;
 
-            // @String[org.springframework.boot.loader.LaunchedURLClassLoader]
-            String regex = "@String\\[([0-9a-zA-Z.$_]+)\\]";
+//            @String[java.net.URLClassLoader@71dac704]
+//             [@String[ThanosTomEEWebappClassLoader\r\n  context: ROOT\r\n  delegate: false\r\n----------> Parent Classloader:\r\ncom.tongweb.tongejb.core.ConnectorClassLoader@775466b6\r\n]]
+//            @String[71dac704]
+            String regex = "@String\\[(.*?)\\]";
             Matcher matcher = Pattern.compile(regex).matcher(result.get(0));
             if (matcher.find()) {
-                return matcher.group(1);
+                return matcher.group(2);
             }
         } catch (Exception e) {
             logger.error(e.getMessage());

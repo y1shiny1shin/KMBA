@@ -116,15 +116,12 @@ public class Listener {
                 logger.info("/listener/unload: {}" , resultStr);
 
                 if (resultStr.contains("Failed to execute ognl")){
-                    logger.error(resultStr);
                     failCnt++;
                 }
                 if (resultStr.contains("isEmpty")){
-                    logger.error(resultStr);
                     isEmptyCnt++;
                 }
                 if (resultStr.contains("unExist")){
-                    logger.error(resultStr);
                     isExistCnt++;
                 }
             }

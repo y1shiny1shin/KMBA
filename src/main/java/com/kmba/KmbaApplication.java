@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class KmbaApplication {
 
     public static void main(String[] args) {
+        Logo.print();
         if (args.length > 0 && "--help".equals(args[0])) {
             System.out.println(CliHandler.HELP);
             return;

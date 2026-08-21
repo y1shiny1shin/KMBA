@@ -38,7 +38,7 @@ public class SpringFluxNettyHandler {
      * unload 需要指定 classLoader，通过 Util.getClassLoader() 获取后再指定
      */
 //    private String unloadSFNHByVmtool = "vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express 'instances.{(#this.doOnChannelInit.getClass.getName==\"%s\")?(#this.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},instances.{#this.doOnChannelInit}'";
-    private String unloadSFNHByVmtool = "vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig -classLoader %s --express '#hsc=instances[%s],{(#hsc.doOnChannelInit.getClass.getName==\"%s\")?(#hsc.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},#hsc.doOnChannelInit'";
+    private String unloadSFNHByVmtool = "vmtool -l -1 --action getInstances --className reactor.netty.http.server.HttpServerConfig -c %s --express '#hsc=instances[%s],{(#hsc.doOnChannelInit.getClass.getName==\"%s\")?(#hsc.doOnChannelInit=@reactor.netty.ReactorNetty@NOOP_CONFIGURER):(null)},#hsc.doOnChannelInit'";
     @RequestMapping("/list")
     public JSONArray list() {
         try {
@@ -88,7 +88,7 @@ public class SpringFluxNettyHandler {
                 String resultStr = String.join("" ,result);
                 logger.info("/SpringFluxNettyHandler/unload: {}" , resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    logger.error(resultStr);
+                    
                     failCnt++;
                 }
             }

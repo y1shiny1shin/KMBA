@@ -50,6 +50,8 @@ const MODULES = [
         unload: { url: '/upgrade/unload',  params: (qs, r) => qs.set('upgradeName', r.key || '') } },
 
     // ── SpringMVC ──
+    { id: 'struts2Action',       title: 'Struts2 Action',       desc: 'urlPath -> className',  list: '/Struts2Action/list',
+        unload: { url: '/Struts2Action/unload', params: (qs, r) => qs.set('urlPath', r.key || '') } },
     { id: 'springMvcController',  title: 'SpringMVC Controller',  desc: 'urlPath -> className',  list: '/SpringMvcController/list',
         unload: { url: '/SpringMvcController/unload',  params: (qs, r) => qs.set('urlPath', r.key || '') } },
     { id: 'springMvcInterceptor', title: 'SpringMVC Interceptor', desc: 'className',              list: '/SpringMvcInterceptor/list',
@@ -61,7 +63,21 @@ const MODULES = [
     { id: 'springFluxNettyHandler', title: 'SpringFlux NettyHandler', desc: 'className',                list: '/SpringFluxNettyHandler/list',
         unload: { url: '/SpringFluxNettyHandler/unload', params: (qs, r) => qs.set('className', r.className || '') } },
     { id: 'springFluxHandlerMethod', title: 'SpringFlux HandlerMethod', desc: 'urlPath -> className',    list: '/SpringFluxHandlerMethod/list',
-        unload: { url: '/SpringFluxHandlerMethod/unload', params: (qs, r) => qs.set('className', r.className || '') } },
+        unload: { url: '/SpringFluxHandlerMethod/unload', params: (qs, r) => qs.set('urlPattern', r.key || '') } },
     { id: 'springFluxHandlerFunction', title: 'SpringFlux HandlerFunction', desc: 'urlPath -> className', list: '/SpringFluxHandlerFunction/list',
-        unload: { url: '/SpringFluxHandlerFunction/unload', params: (qs, r) => qs.set('url', r.key || '') } }
+        unload: { url: '/SpringFluxHandlerFunction/unload', params: (qs, r) => qs.set('url', r.key || '') } },
+
+    // ── Weblogic / Jetty ──
+    { id: 'weblogicFilter', title: 'WebLogic Filter', desc: 'filterName -> className', list: '/WeblogicFilter/list',
+        unload: { url: '/WeblogicFilter/unload', params: (qs, r) => qs.set('filterName', r.key || '') } },
+    { id: 'weblogicServlet', title: 'WebLogic Servlet', desc: 'urlPath -> className', list: '/WeblogicServlet/list',
+        unload: { url: '/WeblogicServlet/unload', params: (qs, r) => qs.set('urlPath', r.key || '') } },
+    { id: 'weblogicListener', title: 'WebLogic Listener', desc: 'className', list: '/WeblogicListener/list',
+        unload: { url: '/WeblogicListener/unload', params: (qs, r) => qs.set('className', r.className || '') } },
+    { id: 'jettyListener',  title: 'Jetty Listener',  desc: 'className',                list: '/JettyListener/list',
+        unload: { url: '/JettyListener/unload',  params: (qs, r) => qs.set('className', r.className || '') } },
+    { id: 'jettyFilter',    title: 'Jetty Filter',    desc: 'filterName -> className',  list: '/JettyFilter/list',
+        unload: { url: '/JettyFilter/unload',    params: (qs, r) => qs.set('filterName', r.key || '') } },
+    { id: 'jettyServlet',   title: 'Jetty Servlet',   desc: 'urlPath -> className',     list: '/JettyServlet/list',
+        unload: { url: '/JettyServlet/unload',   params: (qs, r) => qs.set('urlPath', r.key || '') } }
 ];

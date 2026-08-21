@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 @RestController
 @RequestMapping("/socket")
 public class Socket {
-    private String listSocketByVmtool = "vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#name=#container.configExactMatchMap.keySet().toArray().{#name=#this,#this+\":\"+#container.configExactMatchMap[#name].getEndpointClass()}'";
+    private String listSocketByVmtool = "vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#keys=#container.configExactMatchMap.keySet().toArray(),#keys.length>0?(#v=#container.configExactMatchMap.get(#keys[0]),#hasCfg=#v.getClass().getMethods().{? #this.getName().equals(\"getConfig\")}.size>0,#keys.{(#k=#this,#m=#container.configExactMatchMap.get(#k),#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#k+\":\"+#cls)}):\"EMPTY\"'";
     //    @ArrayList[
 //    @String[/ws2:com.MyWebSocketEndpoint],
 //    @String[/ws1:com.MyWebSocketEndpoint],
@@ -31,7 +31,7 @@ public class Socket {
      *     @String[/ws-shell:class MemshellWebSocket],
      * ]
      */
-    private String unloadSocketByVmtool = "vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#className=#container.configExactMatchMap[\"%s\"].getEndpointClass().getName(),{#className.equals(\"%s\")?#container.configExactMatchMap.remove(\"%s\"):\"failed\"}'";
+    private String unloadSocketByVmtool = "vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#u=\"%s\",#c=\"%s\",#m=#container.configExactMatchMap.get(#u),#m==null?\"notfound\":(#hasCfg=#m.getClass().getMethods().{? #this.getName().equals(\"getConfig\")}.size>0,#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#cls.getName().equals(#c)?(#container.configExactMatchMap.remove(#u),\"left=\"+#container.configExactMatchMap.containsKey(#u)):\"mismatch\")'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
 
     @RequestMapping("/list")
@@ -72,19 +72,23 @@ public class Socket {
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             int failCnt = 0;
+            int mismatchCnt = 0;
             for (int i = 0; i < socketCnt; i++) {
-                String cmd = String.format(unloadSocketByVmtool, i, urlName , className ,urlName);
+                String cmd = String.format(unloadSocketByVmtool, i, urlName , className);
 
                 List<String> result = wrapper.runCmd(cmd);
                 String resultStr = String.join("" ,result);
                 logger.info("/socket/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl") || resultStr.contains("@String[failed]")){
-                    logger.error(resultStr);
                     failCnt++;
+                } else if (resultStr.contains("mismatch") || resultStr.contains("notfound")) {
+                    mismatchCnt++;
                 }
             }
             if (failCnt == socketCnt) {
                 return "OGNL execute failed";
+            } else if (mismatchCnt == socketCnt) {
+                return "not found";
             }
             return "success";
         } catch (Exception e){

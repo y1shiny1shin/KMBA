@@ -2,6 +2,7 @@ package com.kmba.tunnel;
 
 import com.alibaba.fastjson.JSON;
 import com.kmba.Utils.ArthasWsRequest;
+import com.kmba.arthas.TongWeb;
 import com.kmba.pojo.AgentInfo;
 import com.kmba.Utils.ArthasWsClient;
 import org.apache.logging.log4j.LogManager;
@@ -63,6 +64,13 @@ public class ArthasWsWrapper {
         if (cmd != "help"){
             logger.info("ExecCmd: {}" ,cmd);
         }
+
+        // TongWeb 容器适配（命令级翻译钩子）: 探测结果连接级缓存，仅首次真实探测；
+        // 探测走 runCmd0 不经过本层，无递归。非 TongWeb 环境零行为变化。
+        if (TongWeb.isTongWeb(this)) {
+            cmd = TongWeb.translate(cmd);
+        }
+
         String fullCmd = cmd + PLAINTEXT;
 
         wsClient.send(JSON.toJSONString(new ArthasWsRequest(fullCmd)));
@@ -70,6 +78,7 @@ public class ArthasWsWrapper {
 
         if (pollForResult(wsClient)){
             wsClient.setEnd(false);
+            logger.info("{}" ,clearOutput(wsClient.resultMsg, fullCmd));
             return clearOutput(wsClient.resultMsg, fullCmd);
         } else {
             logger.warn("ExecCmd timeout: {}", cmd);
@@ -78,17 +87,21 @@ public class ArthasWsWrapper {
     }
 
     public List<String> runCmd0(String cmd) throws InterruptedException {
-        cmd = cmd  + PLAINTEXT;
+        if (cmd != "help"){
+            logger.info("ExecCmd: {}" ,cmd);
+        }
 
-        wsClient.send(JSON.toJSONString(new ArthasWsRequest(cmd)));
+        String fullCmd = cmd + PLAINTEXT;
 
-
-        logger.info("ExecCmd: "+cmd);
+        wsClient.send(JSON.toJSONString(new ArthasWsRequest(fullCmd)));
+        Thread.sleep(500);
 
         if (pollForResult(wsClient)){
             wsClient.setEnd(false);
-            return clearOutput(wsClient.resultMsg ,cmd);
+            logger.info("{}" ,clearOutput(wsClient.resultMsg, fullCmd));
+            return clearOutput(wsClient.resultMsg, fullCmd);
         } else {
+            logger.warn("ExecCmd timeout: {}", cmd);
             return null;
         }
     }
@@ -150,6 +163,8 @@ public class ArthasWsWrapper {
         globalAgentInfo.setWsPort(port);
         // 重置 wrapper，下次 getWrapper 时会重新创建
         globalWrapper = null;
+        // 换目标 JVM，重置 TongWeb 探测缓存
+        TongWeb.reset();
     }
 
     public static void close() {

@@ -32,8 +32,8 @@ public class Thread {
      * ====
      * 上面的做法是不对的，既然停止了现场，那target变为null，只需要再list的时候，指定target为null的就不输出就可以
      */
-    private String listThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.target!=null)},#ts.{#ts0=#this,#tName=#ts0.name,#tClassName,{(#ts0.target==null)?(null):(#tClassName=#ts0.target.getClass().getName())},#tName+\":\"+#tClassName}'";
-    private String unloadThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?#this.target!=null},#ts.{#thread=#this,#className=#thread.target.getClass().getName(),#threadName=#thread.name,{#threadName.equals(\"%s\")&&#className.equals(\"%s\")?#thread.interrupt():null}}'";
+    private String listThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.isAlive()&&(#this.target!=null || !#this.getClass().getName().equals(\"java.lang.Thread\")))},#ts.{#ts0=#this,#tName=#ts0.getName(),#tClassName=(#ts0.target==null)?#ts0.getClass().getName():#ts0.target.getClass().getName(),#tName+\":\"+#tClassName}'";
+    private String unloadThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.isAlive()&&(#this.target!=null || !#this.getClass().getName().equals(\"java.lang.Thread\")))},#ts.{#thread=#this,#className=(#thread.target==null)?#thread.getClass().getName():#thread.target.getClass().getName(),#threadName=#thread.getName(),{#threadName.equals(\"%s\")&&#className.equals(\"%s\")?#thread.interrupt():null}}'";
     // 线程
 
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
@@ -82,7 +82,7 @@ public class Thread {
                 String resultStr = String.join("" ,result);
                 logger.info("/thread/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    logger.error(resultStr);
+                    
                     failCnt++;
                 }
             }

@@ -25,12 +25,60 @@ public class CompHandler {
                     return new Filter().unload(target);
                 }
             },
+            new Comp("weblogicFilter", "-u weblogicFilter <filterName>") {
+                JSONArray list() {
+                    return new WeblogicFilter().list();
+                }
+                String unload(String target, String extra) {
+                    return new WeblogicFilter().unload(target);
+                }
+            },
+            new Comp("weblogicServlet", "-u weblogicServlet <urlPath>") {
+                JSONArray list() {
+                    return new WeblogicServlet().list();
+                }
+                String unload(String target, String extra) {
+                    return new WeblogicServlet().unload(target);
+                }
+            },
+            new Comp("weblogicListener", "-u weblogicListener <className>") {
+                JSONArray list() {
+                    return new WeblogicListener().list();
+                }
+                String unload(String target, String extra) {
+                    return new WeblogicListener().unload(target);
+                }
+            },
             new Comp("listener",   "-u listener <className>") {
                 JSONArray list() {
                     return new Listener().list();
                 }
                 String unload(String target, String extra) {
                     return new Listener().unload(target);
+                }
+            },
+            new Comp("jettyListener", "-u jettyListener <className>") {
+                JSONArray list() {
+                    return new JettyListener().list();
+                }
+                String unload(String target, String extra) {
+                    return new JettyListener().unload(target);
+                }
+            },
+            new Comp("jettyFilter", "-u jettyFilter <filterName>") {
+                JSONArray list() {
+                    return new JettyFilter().list();
+                }
+                String unload(String target, String extra) {
+                    return new JettyFilter().unload(target);
+                }
+            },
+            new Comp("jettyServlet", "-u jettyServlet <urlPath>") {
+                JSONArray list() {
+                    return new JettyServlet().list();
+                }
+                String unload(String target, String extra) {
+                    return new JettyServlet().unload(target);
                 }
             },
             new Comp("springMvcController", "-u springMvcController <urlPath>") {
@@ -65,7 +113,7 @@ public class CompHandler {
                     return new SpringFluxNettyHandler().unload(target);
                 }
             },
-            new Comp("springFluxHandlerMethod", "-u springFluxHandlerMethod <className>") {
+            new Comp("springFluxHandlerMethod", "-u springFluxHandlerMethod <urlPattern>") {
                 JSONArray list() {
                     return new SpringFluxHandlerMethod().list();
                 }
@@ -175,11 +223,20 @@ public class CompHandler {
             case "filterName not found":
                 System.out.println("[!] filterName not found");
                 break;
+            case "urlPath not found":
+                System.out.println("[!] urlPath not found");
+                break;
+            case "urlPattern not found":
+                System.out.println("[!] urlPattern not found");
+                break;
             case "Listener is empty":
                 System.out.println("[!] Listener is empty");
                 break;
             case "Listener is not exist":
                 System.out.println("[!] Listener is not exist");
+                break;
+            case "Listener not found":
+                System.out.println("[!] Listener not found");
                 break;
             default:
                 System.out.println(result);
@@ -324,7 +381,13 @@ public class CompHandler {
         switch (c.name) {
             case "servlet":                  return new String[]{"URLPattern", "className"};
             case "filter":                   return new String[]{"URLPattern", "filterName", "className"};
+            case "weblogicFilter":           return new String[]{"filterName", "className"};
+            case "weblogicServlet":          return new String[]{"URLPattern", "className"};
+            case "weblogicListener":         return new String[]{"className"};
             case "listener":                 return new String[]{"className"};
+            case "jettyListener":            return new String[]{"className"};
+            case "jettyFilter":              return new String[]{"filterName", "className"};
+            case "jettyServlet":             return new String[]{"URLPattern", "className"};
             case "springMvcController":      return new String[]{"URLPattern", "className"};
             case "springMvcInterceptor":     return new String[]{"interceptorName", "className"};
             case "springFluxWebFilter":      return new String[]{"filterName", "className"};

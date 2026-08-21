@@ -110,7 +110,7 @@ public class SpringFluxHandlerMethod {
                 String resultStr = String.join("" ,result);
                 logger.info("/SpringFluxHandlerMethod/unload: {}" , resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    logger.error(resultStr);
+                    
                     failCnt++;
                 }
             }

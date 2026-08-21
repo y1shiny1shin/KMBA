@@ -98,10 +98,10 @@ public class Filter {
                 String resultStr = String.join("" ,result);
                 logger.info("/filter/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    logger.error(resultStr);
+                    
                     failCnt++;
                 } else if (resultStr.contains("unExist")) {
-                    logger.error(resultStr);
+                    
                     notFoundCnt++;
                 }
             }
