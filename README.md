@@ -1,11 +1,11 @@
-# KMBA — Tomcat / SpringMVC 内存马查杀工具
+# KMBA — Tomcat / SpringMVC / SpringFlux / WebLogic / Jetty 内存马查杀工具
 
-KMBA 是一个 Java 内存马应急响应工具，支持 **Web 管理界面**和 **CLI 命令行**两种模式，用于检测、分析和清除 Apache Tomcat 及 SpringMVC 应用中的内存 webshell（内存马）。它使用 [Arthas](https://arthas.aliyun.com/) 作为诊断引擎，通过 OGNL 表达式和 `vmtool` 命令直接检查运行中的 JVM 内部状态，无需重启目标应用。
+KMBA 是一个 Java 内存马应急响应工具，支持 **Web 管理界面**和 **CLI 命令行**两种模式，用于检测、分析和清除 Tomcat、SpringMVC、SpringFlux、WebLogic、Jetty 应用中的内存 webshell（内存马）。它使用 [Arthas](https://arthas.aliyun.com/) 作为诊断引擎，通过 OGNL 表达式和 `vmtool` 命令直接检查运行中的 JVM 内部状态，无需重启目标应用。
 ![img.png](img.png)
 
 ## 功能特性
 
-- **覆盖 16 种内存马类型** — Servlet、Filter、Listener、WebSocket、Valve、ProxyValve、Executor、Thread、Timer、Upgrade、SpringMVC Controller、SpringMVC Interceptor、SpringFlux WebFilter、SpringFlux NettyHandler、SpringFlux HandlerMethod、SpringFlux HandlerFunction
+- **覆盖 22 种内存马类型** — Servlet、Filter、Listener、WebSocket、Valve、ProxyValve、Executor、Thread、Timer、Upgrade、SpringMVC Controller、SpringMVC Interceptor、SpringFlux WebFilter、SpringFlux NettyHandler、SpringFlux HandlerMethod、SpringFlux HandlerFunction、WebLogic Filter、WebLogic Servlet、WebLogic Listener、Jetty Filter、Jetty Servlet、Jetty Listener
 - **Web 管理界面** — 暗色主题 SPA，无 CDN 依赖，所有前端资源本地化
 - **CLI 命令行模式** — 支持 headless 环境、脚本批量和 SSH 远程场景，无需浏览器
 - **按需 JAD 反编译** — 直接从 JVM 中提取任意已加载类的 Java 源码并格式化展示
@@ -31,8 +31,14 @@ KMBA 是一个 Java 内存马应急响应工具，支持 **Web 管理界面**和
 | SpringMVC Interceptor | `RequestMappingHandlerMapping.adaptedInterceptors`           |
 | SpringFlux WebFilter  | `FilteringWebHandler.chain.allFilters`                      |
 | SpringFlux NettyHandler | `HttpServerConfig.doOnChannelInit`                        |
-| SpringFlux HandlerMethod | `RequestMappingHandlerMapping.handlerMethods`            | 
+| SpringFlux HandlerMethod | `RequestMappingHandlerMapping.handlerMethods`            |
 | SpringFlux HandlerFunction | `RouterFunctionMapping.routerFunction`                |
+| WebLogic Filter    | `WebAppServletContext.getFilterRegistrations()`          |
+| WebLogic Servlet   | `WebAppServletContext.getServletMapping()`               |
+| WebLogic Listener  | `WebAppServletContext.eventsManager`                     |
+| Jetty Filter       | `ServletHandler.filters` + `getFilterMappings()`         |
+| Jetty Servlet      | `ServletHandler.servlets` + `getServletMappings()`       |
+| Jetty Listener     | `ContextHandler.getEventListeners()`                     |
 
 ## 架构
 
@@ -72,7 +78,7 @@ mvn clean package -DskipTests
 ### Web 模式
 
 ```bash
-java -jar target/KMBA.jar
+java -jar KMBA.jar
 ```
 
 启动后浏览器访问 `http://localhost:9099`，通过界面连接目标 JVM 并进行操作。
@@ -82,7 +88,7 @@ java -jar target/KMBA.jar
 适用于 headless 服务器、SSH 远程操作或脚本批量处理：
 
 ```bash
-java -jar target/KMBA-0.1.jar cli <pid> <command>
+java -jar KMBA.jar cli <pid> <command>
 ```
 
 **列出组件：**
@@ -91,10 +97,13 @@ java -jar target/KMBA-0.1.jar cli <pid> <command>
 # 列出指定类型
 java -jar KMBA.jar cli 54203 -l servlet
 java -jar KMBA.jar cli 54203 -l filter
-java -jar KMBA.jar cli 54203 -l smc        # SpringMVC Controller
-java -jar KMBA.jar cli 54203 -l smi        # SpringMVC Interceptor
+java -jar KMBA.jar cli 54203 -l springMvcController       # SpringMVC Controller
+java -jar KMBA.jar cli 54203 -l springMvcInterceptor      # SpringMVC Interceptor
+java -jar KMBA.jar cli 54203 -l springFluxWebFilter       # SpringFlux WebFilter
+java -jar KMBA.jar cli 54203 -l weblogicServlet           # WebLogic Servlet
+java -jar KMBA.jar cli 54203 -l jettyFilter               # Jetty Filter
 
-# 列出全部 12 种类型
+# 列出全部 22 种类型
 java -jar KMBA.jar cli 54203 -l all
 ```
 
@@ -102,11 +111,14 @@ java -jar KMBA.jar cli 54203 -l all
 
 ```bash
 java -jar KMBA.jar cli 54203 -u servlet /evil
-java -jar KMBA.jar cli 54203 -u filter /evil
+java -jar KMBA.jar cli 54203 -u filter evilFilter
 java -jar KMBA.jar cli 54203 -u proxyValve first com.InjectValve
 java -jar KMBA.jar cli 54203 -u proxyValve basic com.InjectValve
 java -jar KMBA.jar cli 54203 -u thread myThread com.EvilTask
 java -jar KMBA.jar cli 54203 -u socket /ws com.MyWS
+java -jar KMBA.jar cli 54203 -u springFluxWebFilter com.EvilFilter
+java -jar KMBA.jar cli 54203 -u weblogicFilter evilFilter
+java -jar KMBA.jar cli 54203 -u jettyServlet /evil
 ```
 
 **反编译类：**
@@ -165,11 +177,7 @@ start.bat cli 54203 -u servlet /evil
 本工具仅限**授权的安全运维和应急响应**场景使用。请仅在您拥有或被明确授权分析的系统中使用。作者不承担任何滥用导致的后果。
 
 ## 已通过的测试环境
-Nacos 2.2.2
-XXL-JOB 2.1.2
-fastjson 1.2.24
-Ruoyi 3.4.0
-Shiro 1.2.4
+详见KMBA测试结果.md
 
 ## 感谢
 
@@ -181,7 +189,7 @@ Shiro 1.2.4
 - [FreeBuf](https://www.freebuf.com/)
 - [ReaJason](https://github.com/)
 - [Linux.do](https://linux.do/)
-**排名不分先后，感谢各位前辈**
+- **排名不分先后，感谢各位前辈**
 
 ## 协议
 
