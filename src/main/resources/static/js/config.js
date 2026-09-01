@@ -48,6 +48,8 @@ const MODULES = [
         unload: { url: '/timer/unload',   params: (qs, r) => qs.set('className', r.className || '') } },
     { id: 'upgrade',  title: 'Upgrade',   desc: 'upgradeName -> className',  list: '/upgrade/list',
         unload: { url: '/upgrade/unload',  params: (qs, r) => qs.set('upgradeName', r.key || '') } },
+    { id: 'agent',    title: 'Agent',     desc: 'transformer className',     list: '/agent/list',
+        unload: { url: '/agent/unload',   params: (qs, r) => qs.set('className', r.className || '') } },
 
     // ── SpringMVC ──
     { id: 'struts2Action',       title: 'Struts2 Action',       desc: 'urlPath -> className',  list: '/Struts2Action/list',

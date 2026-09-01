@@ -29,7 +29,10 @@ public class Listener {
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     // OGNL语法 集合过滤逻辑 ? ! 引用： https://blog.csdn.net/qin9r3y/article/details/8451977
 //    private String unloadListenerByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[%s].applicationEventListenersList,#x=1,#list.{(#this.getClass.getName.contains(\"%s\"))?(#x=#this):null},#list.remove(#x)'";
-    private String unloadListenerByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[%s].applicationEventListenersList,#x=\"-1\",{(!#list.isEmpty)?(#list.{(#this.getClass.getName.equals(\"%s\"))?(#x=#this):(\"null\")},{(#x==\"-1\")?(\"unExist\"):(#list.remove(#x))}):(\"isEmpty\")}'";
+    // 注意: 表达式末值必须是纯字符串标记（done/empty/unExist）——
+    // 若以嵌套列表结尾，vmtool 渲染出的 "isEmpty=false" 字样会被误当标记解析
+    // （Round3 发现: 卸载实际生效却误报 "Listener is empty"）
+    private String unloadListenerByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#list=instances[%s].applicationEventListenersList,#x=\"-1\",(!#list.isEmpty)?(#list.{(#this.getClass.getName.equals(\"%s\"))?(#x=#this):(\"null\")},{(#x==\"-1\")?(\"null\"):(#list.remove(#x))},(#x==\"-1\")?(\"unExist\"):(\"done\")):(\"isEmpty\")'";
     private String listListenerBySc = "sc javax.servlet.ServletRequestListener";
     private String listListenerByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express 'instances[%s].applicationEventListenersList'";
     @RequestMapping("/list")
@@ -106,40 +109,64 @@ public class Listener {
 
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
             int tomcatSiteCnt = getTomcatSiteCnt();
+            int removedCnt = 0;
             int failCnt = 0;
             int isEmptyCnt = 0;
             int isExistCnt = 0;
             for (int i=0; i<tomcatSiteCnt; i++) {
-                String cmd = String.format(unloadListenerByVmtool ,i ,className);
-                List<String> result = wrapper.runCmd(cmd);
-                String resultStr = String.join("" ,result);
-                logger.info("/listener/unload: {}" , resultStr);
+                // 同名多副本逐个移除：每移除一份后复查列表，直到目标不再出现
+                for (int attempt = 0; attempt < 10; attempt++) {
+                    if (!listContains(className, i, wrapper)) {
+                        break;
+                    }
+                    String cmd = String.format(unloadListenerByVmtool ,i ,className);
+                    List<String> result = wrapper.runCmd(cmd);
+                    String resultStr = String.join("" ,result);
+                    logger.info("/listener/unload: {}" , resultStr);
 
-                if (resultStr.contains("Failed to execute ognl")){
-                    failCnt++;
-                }
-                if (resultStr.contains("isEmpty")){
-                    isEmptyCnt++;
-                }
-                if (resultStr.contains("unExist")){
-                    isExistCnt++;
+                    if (resultStr.contains("Failed to execute ognl")){
+                        logger.error(resultStr);
+                        failCnt++;
+                        break;
+                    }
+                    if (resultStr.contains("isEmpty")){
+                        logger.error(resultStr);
+                        isEmptyCnt++;
+                        break;
+                    }
+                    if (resultStr.contains("unExist")){
+                        logger.error(resultStr);
+                        isExistCnt++;
+                        break;
+                    }
+                    if (resultStr.contains("done")){
+                        removedCnt++;
+                    }
                 }
             }
-            if (failCnt == tomcatSiteCnt) {
+            if (removedCnt > 0) {
+                return "success";
+            }
+            if (failCnt > 0) {
                 return "OGNL execute failed";
             }
-            if (isEmptyCnt == tomcatSiteCnt) {
+            if (isEmptyCnt > 0) {
                 return "Listener is empty";
             }
-            if (isExistCnt == tomcatSiteCnt) {
-                return "Listener not found";
-            }
+            return "Listener not found";
 
         } catch (InterruptedException e) {
             logger.error(e.getMessage());
             return "failed";
         }
+    }
 
-        return "success";
+    /** 目标 context 的 listener 列表中是否仍存在目标类（卸载循环复查用） */
+    private boolean listContains(String className, int i, ArthasWsWrapper wrapper) throws InterruptedException {
+        List<String> result = wrapper.runCmd(String.format(listListenerByVmtool, i));
+        if (result == null || result.isEmpty()) return false;
+        String out = String.join("" ,result);
+        if (out.contains("Failed to execute ognl")) return false;
+        return out.contains(className);
     }
 }

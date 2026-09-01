@@ -838,7 +838,131 @@ vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.serve
 vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#u="/websocket/drawboard",#c="websocket.drawboard.DrawboardEndpoint",#m=#container.configExactMatchMap.get(#u),#m==null?"notfound":(#hasCfg=#m.getClass().getMethods().{? #this.getName().equals("getConfig")}.size>0,#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#cls.getName().equals(#c)?(#container.configExactMatchMap.remove(#u),"left="+#container.configExactMatchMap.containsKey(#u)):"mismatch")'
 
 
-vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[%s],#keys=#container.configExactMatchMap.keySet().toArray(),#keys.length>0?(#v=#container.configExactMatchMap.get(#keys[0]),#hasCfg=#v.getClass().getMethods().{? #this.getName().equals("getConfig")}.size>0,#keys.{(#k=#this,#m=#container.configExactMatchMap.get(#k),#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#k+":"+#cls)}):"EMPTY"'
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#keys=#container.configExactMatchMap.keySet().toArray(),#keys.length>0?(#v=#container.configExactMatchMap.get(#keys[0]),#hasCfg=#v.getClass().getMethods().{? #this.getName().equals("getConfig")}.size>0,#keys.{(#k=#this,#m=#container.configExactMatchMap.get(#k),#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#k+":"+#cls)}):"EMPTY"'
 
 
 vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#pip=instances[%s].getPipeline,#pc=@java.lang.reflect.Proxy@class,#ff=#pip.class.getDeclaredField(\"%s\"),#ff.setAccessible(true),#v=#ff.get(#pip),#v==null?\"EMPTY\":(#pc.isAssignableFrom(#v.class)?(#h=#v.h,#h.class.name.equals(\"%s\")?(#found=#h.class.getDeclaredFields().{? (#f=#this,#f.setAccessible(true),#fval=#f.get(#h),#fval!=null?#ff.getType().isAssignableFrom(#fval.class):false)},#found.size>0?(#ff.set(#pip,#found[0].get(#h)),\"left=\"+#pc.isAssignableFrom(#ff.get(#pip).class)+\",restored=\"+#ff.get(#pip).class.name):\"novalve\"):\"notfound\"):\"notproxy\")'
+
+
+vmtool -l -1 --action getInstances --className org.apache.tomcat.websocket.server.WsServerContainer --express '#container=instances[1],#u="/kmbaws",#c="KmbaTcWs",#m=#container.configExactMatchMap.get(#u),#m==null?"notfound":(#hasCfg=#m.getClass().getMethods().{? #this.getName().equals("getConfig")}.size>0,#cls=#hasCfg?#m.getConfig().getEndpointClass():#m.getEndpointClass(),#cls.getName().equals(#c)?(#container.configExactMatchMap.remove(#u),"left="+#container.configExactMatchMap.containsKey(#u)):"mismatch")'
+
+vmtool --action getInstances --className 'org.apache.jsp.proxyValve_jsp' --express 'instances.class.getProtectionDomain().getCodeSource()'
+
+vmtool --action getInstances --className 'org.apache.jsp.proxyValve_jsp' --express 'instances[0].class.getProtectionDomain().getCodeSource()'
+
+
+vmtool -l -1 --action getInstances --className sun.instrument.InstrumentationImpl --express 'instances[1].mRetransfomableTransformerManager.mTransformerList'
+
+
+vmtool -l -1 --action getInstances --className sun.instrument.InstrumentationImpl --express 'instances[1].mRetransfomableTransformerManager.mTransformerList[0].mTransformer'
+
+
+vmtool -l -1 --action getInstances --className sun.instrument.InstrumentationImpl --express 'instances[0].mRetransfomableTransformerManager.mTransformerList[0].mTransformer.class.getName'
+
+
+vmtool --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[0], #f2=#ins.getClass().getDeclaredField("mRetransfomableTransformerManager"), #f2.setAccessible(true), #tm2=#f2.get(#ins), #a2=#tm2.mTransformerList, #m=#a2.{? #this.mTransformer.getClass().getName().equals("org.apache.nZcPC.HttpClientUtil")}, #m.size()==0 ? "no-such-memshell" : (#t=#m[0].mTransformer, #r=#ins.removeTransformer(#t), #all=#ins.getAllLoadedClasses(), #clz=#all.{? #this.getName().equals("org.apache.catalina.core.ApplicationFilterChain")}[0], #ins.retransformClasses(#clz), "removed="+#r+", left="+#tm2.mTransformerList.length)'
+
+
+vmtool --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[1], #f1=#ins.getClass().getDeclaredField("mTransformerManager"), #f1.setAccessible(true), #tm1=#f1.get(#ins), #f2=#ins.getClass().getDeclaredField("mRetransfomableTransformerManager"), #f2.setAccessible(true), #tm2=#f2.get(#ins), #c1=#tm1==null?"null":#tm1.mTransformerList.length, #c2=#tm2==null?"null":#tm2.mTransformerList.length, "n="+#c1+", r="+#c2'
+
+
+vmtool --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[%s],
+#uc=@java.lang.Class@forName("sun.misc.Unsafe"),
+#uf=#uc.getDeclaredField("theUnsafe"),
+#uf.setAccessible(true),
+#u=#uf.get(null),
+#f1=#ins.getClass().getDeclaredField("mTransformerManager"),
+#tm1=#u.getObject(#ins,#u.objectFieldOffset(#f1)),
+#f2=#ins.getClass().getDeclaredField("mRetransfomableTransformerManager"),
+#tm2=#u.getObject(#ins,#u.objectFieldOffset(#f2)),
+#lst1=#tm1==null?new java.util.ArrayList():@java.util.Arrays@asList(#u.getObject(#tm1,#u.objectFieldOffset(#tm1.getClass().getDeclaredField("mTransformerList")))),#lst2=#tm2==null?new java.util.ArrayList():@java.util.Arrays@asList(#u.getObject(#tm2,#u.objectFieldOffset(#tm2.getClass().getDeclaredField("mTransformerList")))),#m1=#lst1.{? (#t=#this,#u.getObject(#t,#u.objectFieldOffset(#t.getClass().getDeclaredField("mTransformer"))).getClass().getName().equals("%s"))},#m2=#lst2.{? (#t=#this,#u.getObject(#t,#u.objectFieldOffset(#t.getClass().getDeclaredField("mTransformer"))).getClass().getName().equals("%s"))},#c=#m1.size()+#m2.size(),#ic=@java.lang.Class@forName("java.lang.instrument.Instrumentation"),#c>0&&(#m1.size()>0&&(#t2=#u.getObject(#m1[0],#u.objectFieldOffset(#m1[0].getClass().getDeclaredField("mTransformer"))),#rm=#ic.getMethods().{? #this.getName().equals("removeTransformer")}[0],#r1=#rm.invoke(#ins,#t2)),#m2.size()>0&&(#t3=#u.getObject(#m2[0],#u.objectFieldOffset(#m2[0].getClass().getDeclaredField("mTransformer"))),#rm2=#ic.getMethods().{? #this.getName().equals("removeTransformer")}[0],#r2=#rm2.invoke(#ins,#t3))),#c>0?"removed":"not-found"'
+
+
+
+===
+void
+retransformClasses(JNIEnv * jnienv, JPLISAgent * agent, jobjectArray classes) {
+    jvmtiEnv *  retransformerEnv     = retransformableEnvironment(agent);
+    jboolean    errorOccurred        = JNI_FALSE;
+    jvmtiError  errorCode            = JVMTI_ERROR_NONE;
+    jsize       numClasses           = 0;
+    jclass *    classArray           = NULL;
+
+    /* This is supposed to be checked by caller, but just to be sure */
+    if (retransformerEnv == NULL) {
+        jplis_assert(retransformerEnv != NULL);
+        errorOccurred = JNI_TRUE;
+        errorCode = JVMTI_ERROR_MUST_POSSESS_CAPABILITY;
+    }
+
+    /* This was supposed to be checked by caller too */
+    if (!errorOccurred && classes == NULL) {
+        jplis_assert(classes != NULL);
+        errorOccurred = JNI_TRUE;
+        errorCode = JVMTI_ERROR_NULL_POINTER;
+    }
+
+    if (!errorOccurred) {
+        numClasses = (*jnienv)->GetArrayLength(jnienv, classes);
+        errorOccurred = checkForThrowable(jnienv);
+        jplis_assert(!errorOccurred);
+
+        if (!errorOccurred && numClasses == 0) {
+            jplis_assert(numClasses != 0);
+            errorOccurred = JNI_TRUE;
+            errorCode = JVMTI_ERROR_NULL_POINTER;
+        }
+    }
+
+    if (!errorOccurred) {
+        classArray = (jclass *) allocate(retransformerEnv,
+                                         numClasses * sizeof(jclass));
+        errorOccurred = (classArray == NULL);
+        jplis_assert(!errorOccurred);
+        if (errorOccurred) {
+            errorCode = JVMTI_ERROR_OUT_OF_MEMORY;
+        }
+    }
+
+    if (!errorOccurred) {
+        jint index;
+        for (index = 0; index < numClasses; index++) {
+            classArray[index] = (*jnienv)->GetObjectArrayElement(jnienv, classes, index);
+            errorOccurred = checkForThrowable(jnienv);
+            jplis_assert(!errorOccurred);
+            if (errorOccurred) {
+                break;
+            }
+
+            if (classArray[index] == NULL) {
+                jplis_assert(classArray[index] != NULL);
+                errorOccurred = JNI_TRUE;
+                errorCode = JVMTI_ERROR_NULL_POINTER;
+                break;
+            }
+        }
+    }
+
+    if (!errorOccurred) {
+        errorCode = (*retransformerEnv)->RetransformClasses(retransformerEnv,
+                                                            numClasses, classArray);
+        errorOccurred = (errorCode != JVMTI_ERROR_NONE);
+    }
+
+    /* Give back the buffer if we allocated it.  Throw any exceptions after.
+     */
+    if (classArray != NULL) {
+        deallocate(retransformerEnv, (void*)classArray);
+    }
+
+    /* Return back if we executed the JVMTI API in a wrong phase
+     */
+    check_phase_ret(errorCode);
+
+    if (errorCode != JVMTI_ERROR_NONE) {
+        createAndThrowThrowableFromJVMTIErrorCode(jnienv, errorCode);
+    }
+
+    mapThrownThrowableIfNecessary(jnienv, redefineClassMapper);
+}
+===

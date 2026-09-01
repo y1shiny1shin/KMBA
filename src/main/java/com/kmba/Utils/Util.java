@@ -27,7 +27,8 @@ public class Util {
     public static String getWeblogicCntExpress = "vmtool -l -1 --action getInstances --className weblogic.servlet.internal.WebAppServletContext --express 'instances.length'";
     public static String getJettyCntExpress = "vmtool -l -1 --action getInstances --className org.eclipse.jetty.servlet.ServletHandler --express 'instances.length'";
     public static String getUpgradeCntExpress = "vmtool -l -1 --action getInstances --className org.apache.coyote.http11.AbstractHttp11Protocol --express 'instances.length'";
-
+    public static String getAgentCntExpress = "vmtool -l -1 --action getInstances --className sun.instrument.InstrumentationImpl --express 'instances.length'";
+    public static String getStruts2ActionCntExpress = "vmtool -l -1 --action getInstances --className com.opensymphony.xwork2.config.impl.DefaultConfiguration --express 'instances.length'";
 
     private static final Pattern INTEGER_PATTERN =
             Pattern.compile("@Integer\\[(\\d+)]");
@@ -108,6 +109,14 @@ public class Util {
 
     public static int getUpgradeCnt() {
         return executeCountCommand(getUpgradeCntExpress ,"UpgradeCnt");
+    }
+
+    public static int getAgentCnt() {
+        return executeCountCommand(getAgentCntExpress ,"AgentCnt");
+    }
+
+    public static int getStruts2ActionCnt() {
+        return executeCountCommand(getStruts2ActionCntExpress ,"Struts2ActionCnt");
     }
 
 

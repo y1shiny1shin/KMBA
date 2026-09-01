@@ -204,7 +204,7 @@ public class SpringMvcController {
                         String resultStr = String.join("" ,result);
                         logger.info("/SpringMvcController/unload: {}" , resultStr);
                         if (resultStr.contains("Failed to execute ognl")) {
-                            
+                            logger.error(resultStr);
                             break;
                         }
                         List<String> after = wrapper.runCmd(String.format(checker, classLoader, i, urlPath));
@@ -253,7 +253,7 @@ public class SpringMvcController {
                     String resultStr = String.join("" ,result);
                     logger.info("/SpringMvcController/unload: {}" , resultStr);
                     if (resultStr.contains("Failed to execute ognl")){
-                        
+                        logger.error(resultStr);
                         failCnt++;
                         continue;
                     }

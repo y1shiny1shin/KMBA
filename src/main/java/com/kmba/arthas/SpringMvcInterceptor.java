@@ -97,7 +97,7 @@ public class SpringMvcInterceptor {
                 String resultStr = String.join("" ,result);
                 logger.info("/SpringMvcInterceptor/unload: {}" , resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                 }
             }

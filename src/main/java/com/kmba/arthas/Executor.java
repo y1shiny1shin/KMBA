@@ -84,7 +84,7 @@ public class Executor {
                 String resultStr = String.join("" ,result);
                 logger.info("/executor/unloadBrutly: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                 }
             }
@@ -115,7 +115,7 @@ public class Executor {
                 String resultStr = String.join("" ,result);
                 logger.info("/executor/unloadGently: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                 }
             }

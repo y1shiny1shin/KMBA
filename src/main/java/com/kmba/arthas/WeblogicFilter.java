@@ -115,7 +115,7 @@ public class WeblogicFilter {
                 String resultStr = String.join("" ,result);
                 logger.info("/WeblogicFilter/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                     continue;
                 }

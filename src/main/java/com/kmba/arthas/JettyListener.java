@@ -129,7 +129,7 @@ public class JettyListener {
                 String resultStr = String.join("" ,result);
                 logger.info("/JettyListener/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                     continue;
                 }

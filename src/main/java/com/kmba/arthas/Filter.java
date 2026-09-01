@@ -75,7 +75,10 @@ public class Filter {
                 jsonObject.put("urlPattern", matcher.group(1));
                 jsonObject.put("filterName", matcher.group(2));
                 jsonObject.put("className", matcher.group(3));
-                jsonArray.add(jsonObject);
+                // Round3 发现: 多 context 层级遍历会产生同条目重复，按完整三列去重
+                if (!jsonArray.contains(jsonObject)) {
+                    jsonArray.add(jsonObject);
+                }
             }
             logger.info("/filter/list: {}" ,jsonArray.toJSONString());
             return jsonArray;
@@ -98,10 +101,10 @@ public class Filter {
                 String resultStr = String.join("" ,result);
                 logger.info("/filter/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                 } else if (resultStr.contains("unExist")) {
-                    
+                    logger.error(resultStr);
                     notFoundCnt++;
                 }
             }

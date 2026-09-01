@@ -10,6 +10,8 @@ public class Dict {
     public static final int POLL_INTERVAL_MS = 1;
     // 最大轮询次数
     public static final int MAX_POLL_COUNT = 60000;
+    // 发送stop，停止Arthas
+    public static final String STOP = "stop";
     // tomcat 运行站点数（懒加载，首次调用时才执行 Arthas 命令）
     private static int tomcatSiteCnt = -1;
     public static int getTomcatSiteCnt() {

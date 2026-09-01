@@ -116,7 +116,7 @@ public class JettyFilter {
                 String resultStr = String.join("" ,result);
                 logger.info("/JettyFilter/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                     continue;
                 }

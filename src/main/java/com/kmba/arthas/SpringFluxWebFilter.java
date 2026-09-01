@@ -95,7 +95,7 @@ public class SpringFluxWebFilter {
                 String resultStr = String.join("" ,result);
                 logger.info("/SpringFluxWebFilter/unload: {}" , resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                 }
             }

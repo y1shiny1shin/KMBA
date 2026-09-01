@@ -192,6 +192,7 @@ public class CliHandler {
         sb.append("  java -jar KMBA.jar cli 54203 -u socket /ws com.MyEndpoint\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u executor gently com.InjectExecutor\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u executor brutly com.InjectExecutor\n");
+        sb.append("  java -jar KMBA.jar cli 54203 -u agent org.apache.nZcPC.HttpClientUtil\n");
         sb.append("  java -jar KMBA.jar cli 54203 -jad com.InjectServlet\n");
         sb.append("  java -jar KMBA.jar cli 54203 -vmtool javax.servlet.Servlet\n");
         sb.append("  java -jar KMBA.jar cli 54203 -vmtool javax.servlet.Servlet 439f5b3d\n");

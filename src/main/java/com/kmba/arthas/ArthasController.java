@@ -1,7 +1,10 @@
 package com.kmba.arthas;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kmba.Utils.ArthasWsRequest;
+import com.kmba.Utils.Dict;
 import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -250,8 +253,10 @@ public class ArthasController {
             closeGlobalWsWrapperQuietly();
             ArthasWsWrapper.setGlobalAgentInfo("127.0.0.1", LOCAL_WS_PORT);
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-            wrapper.runCmd("stop");
+//            wrapper.runCmd("stop");
             // runCmd 返回 null 是正常的：agent 收到 stop 后关闭 WS，轮询超时返回 null
+            // 不管了，直接发给socket发stop。
+            wrapper.wsClient.send(JSON.toJSONString(new ArthasWsRequest(Dict.STOP)));
         } catch (Exception e) {
             logger.warn("Could not send stop to arthas agent: {}", e.getMessage());
         } finally {

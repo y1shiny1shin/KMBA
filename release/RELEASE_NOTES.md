@@ -1,11 +1,11 @@
 ## 更新日志
 
-### v0.6.1
-- 适配tongweb
-- 通过大量测试，适配GitHub中大量已经武器化的一键内存马工具
-- 修复大量bug，适配性大加强
-- 生产环境测试通过，对业务0影响
-- **修复代码审计出的逻辑漏洞**
+### v0.7
+- 支持transformer类Agent内存马（MemshellParty、JMG）
+- 修复bug
+- 优化输出逻辑，优化cli与web端的提示信息
+- 部分内存马适配高版本jdk、tomcat、Spring
+- 部分优化list/unload逻辑，现在可靠性更强
 
 ---
 

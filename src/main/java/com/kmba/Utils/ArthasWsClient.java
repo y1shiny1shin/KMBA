@@ -53,6 +53,9 @@ public class ArthasWsClient extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
+        this.end = true;
+        this.resultMsg = new ArrayList<>();
+        this.resultMsgBuffer = new ArrayList<>();
     }
 
     @Override

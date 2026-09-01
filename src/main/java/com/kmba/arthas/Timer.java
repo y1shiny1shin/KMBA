@@ -82,7 +82,7 @@ public class Timer {
             String resultStr = String.join("" ,result);
             logger.info("/timer/unload: {}" ,resultStr);
             if (resultStr.contains("Failed to execute ognl")){
-                
+                logger.error(resultStr);
                 return "OGNL execute failed";
             }
 //            }

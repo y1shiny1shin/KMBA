@@ -32,8 +32,12 @@ public class Thread {
      * ====
      * 上面的做法是不对的，既然停止了现场，那target变为null，只需要再list的时候，指定target为null的就不输出就可以
      */
-    private String listThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.isAlive()&&(#this.target!=null || !#this.getClass().getName().equals(\"java.lang.Thread\")))},#ts.{#ts0=#this,#tName=#ts0.getName(),#tClassName=(#ts0.target==null)?#ts0.getClass().getName():#ts0.target.getClass().getName(),#tName+\":\"+#tClassName}'";
-    private String unloadThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.isAlive()&&(#this.target!=null || !#this.getClass().getName().equals(\"java.lang.Thread\")))},#ts.{#thread=#this,#className=(#thread.target==null)?#thread.getClass().getName():#thread.target.getClass().getName(),#threadName=#thread.getName(),{#threadName.equals(\"%s\")&&#className.equals(\"%s\")?#thread.interrupt():null}}'";
+    // Round3 发现: 仅枚举 target!=null（Runnable 型）会漏掉"继承 Thread 覆写 run"型
+    // （target=null、恶意逻辑在 Thread 子类自身的 run 中）。
+    // 修复: 选择条件扩为 target!=null 或 线程类是 Thread 子类（#this.class != java.lang.Thread），
+    // target==null 时输出线程自身的类名
+    private String listThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.isAlive()&&(#this.target!=null || #this.class!=@java.lang.Thread@class))},#ts.{#ts0=#this,#tName=#ts0.name,#tClassName,(#ts0.target==null)?(#tClassName=#ts0.class.getName()):(#tClassName=#ts0.target.getClass().getName()),#tName+\":\"+#tClassName}'";
+    private String unloadThreadByVmtool = "vmtool -l -1 --action getInstances --className java.lang.Thread --express '#ts=instances.{?(#this.isAlive()&&(#this.target!=null || #this.class!=@java.lang.Thread@class))},#ts.{#thread=#this,#className=(#thread.target==null)?#thread.class.getName():#thread.target.getClass().getName(),#threadName=#thread.name,{#threadName.equals(\"%s\")&&#className.equals(\"%s\")?#thread.interrupt():null}}'";
     // 线程
 
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
@@ -72,22 +76,37 @@ public class Thread {
     public String unload(@RequestParam String threadName , @RequestParam String className ){
         try{
             ArthasWsWrapper wrapper = ArthasWsWrapper.getWrapper();
-            int threadCnt = Util.getThreadCnt();
 
-            int failCnt = 0;
-            for (int i = 0; i < threadCnt; i++) {
-                String cmd = String.format(unloadThreadByVmtool , threadName , className);
-
-                List<String> result = wrapper.runCmd(cmd);
-                String resultStr = String.join("" ,result);
-                logger.info("/thread/unload: {}" ,resultStr);
-                if (resultStr.contains("Failed to execute ognl")){
-                    
-                    failCnt++;
-                }
-            }
-            if (failCnt == threadCnt) {
+            // 卸载前确认目标存在（避免把"本就不存在"误报为 success）
+            List<String> before = wrapper.runCmd(listThreadByVmtool);
+            String beforeStr = String.join("" ,before);
+            if (beforeStr.contains("Failed to execute ognl")){
+                logger.error(beforeStr);
                 return "OGNL execute failed";
+            }
+            if (!beforeStr.contains(threadName + ":" + className)) {
+                return "thread not found";
+            }
+
+            String cmd = String.format(unloadThreadByVmtool , threadName , className);
+            List<String> result = wrapper.runCmd(cmd);
+            String resultStr = String.join("" ,result);
+            logger.info("/thread/unload: {}" ,resultStr);
+            if (resultStr.contains("Failed to execute ognl")){
+                logger.error(resultStr);
+                return "OGNL execute failed";
+            }
+
+            // 卸载后复查：目标线程应已消失（interrupt 后 isAlive=false，被列表过滤）
+            List<String> after = wrapper.runCmd(listThreadByVmtool);
+            String afterStr = String.join("" ,after);
+            if (afterStr.contains("Failed to execute ognl")){
+                logger.error(afterStr);
+                return "OGNL execute failed";
+            }
+            if (afterStr.contains(threadName + ":" + className)) {
+                logger.error("/thread/unload: {} 卸载后复查仍存在" ,threadName);
+                return "failed";
             }
             return "success";
 

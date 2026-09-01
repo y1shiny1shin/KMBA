@@ -190,6 +190,14 @@ function normalize(moduleId, data){
             continue;
         }
         if (item && typeof item === 'object' && !Array.isArray(item)){
+            // agent: { className, canRetransform }（独立于 filter 分支，agent 模块也走这里）
+            if (Object.prototype.hasOwnProperty.call(item, 'canRetransform')
+                && Object.prototype.hasOwnProperty.call(item, 'className')) {
+                const className = String(item.className == null ? '' : item.className);
+                rows.push({ key: className, className, aux: item.canRetransform ? 'true' : 'false', canRetransform: item.canRetransform, raw: item });
+                continue;
+            }
+
             if (moduleId === 'filter'){
                 // New JSON format:
                 // [{ "filterName": "...", "className": "...", "urlPattern": "..." }, ...]
@@ -316,6 +324,8 @@ function panelRender(){
         } else if (sel === 'proxyValve'){
             if (r.key) tags.push('<span class="tag">' + esc(r.key) + '</span>');
             if (r.className) tags.push('<span class="tag">class</span>');
+        } else if (sel === 'agent'){
+            if (r.canRetransform) tags.push('<span class="tag hot">canRetransform=true</span>');
         } else if (r.className){
             tags.push('<span class="tag">class</span>');
         }

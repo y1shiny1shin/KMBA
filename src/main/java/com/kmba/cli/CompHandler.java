@@ -81,6 +81,14 @@ public class CompHandler {
                     return new JettyServlet().unload(target);
                 }
             },
+            new Comp("struts2Action", "-u struts2Action <urlPath>") {
+                JSONArray list() {
+                    return new Struts2Action().list();
+                }
+                String unload(String target, String extra) {
+                    return new Struts2Action().unload(target);
+                }
+            },
             new Comp("springMvcController", "-u springMvcController <urlPath>") {
                 JSONArray list() {
                     return new SpringMvcController().list();
@@ -193,22 +201,31 @@ public class CompHandler {
                     return new Upgrade().unload(target);
                 }
             },
+            new Comp("agent",      "-u agent <className>") {
+                JSONArray list() {
+                    return new Agent().list();
+                }
+                String unload(String target, String extra) {
+                    return new Agent().unload(target);
+                }
+            },
     };
 
     // ──── unload ────
 
-    public static void handleUnload(String type, String target, String extra) {
+    /** 返回退出码: 0 卸载成功，1 失败/未找到 */
+    public static int handleUnload(String type, String target, String extra) {
         Comp c = findComp(type);
         if (c == null) {
             System.out.println(buildHelp());
-            return;
+            return 1;
         }
         // proxyValve / thread / socket / executor 需要额外参数校验
         if (extra == null) {
             if ("proxyValve".equals(type) || "thread".equals(type) || "socket".equals(type)
                     || "executor".equals(type)) {
                 System.out.println("Usage: cli <pid> " + c.help);
-                return;
+                return 1;
             }
         }
         String result = c.unload(target, extra);
@@ -216,30 +233,46 @@ public class CompHandler {
         switch (result) {
             case "success":
                 System.out.println("[+] unload success");
-                break;
+                return 0;
             case "OGNL execute failed":
                 System.out.println("[!] unload failed: OGNL execute failed");
-                break;
+                return 1;
             case "filterName not found":
                 System.out.println("[!] filterName not found");
-                break;
+                return 1;
             case "urlPath not found":
                 System.out.println("[!] urlPath not found");
-                break;
+                return 1;
+            case "urlName not found":
+                System.out.println("[!] urlName not found");
+                return 1;
             case "urlPattern not found":
                 System.out.println("[!] urlPattern not found");
-                break;
+                return 1;
             case "Listener is empty":
                 System.out.println("[!] Listener is empty");
-                break;
+                return 1;
             case "Listener is not exist":
                 System.out.println("[!] Listener is not exist");
-                break;
+                return 1;
             case "Listener not found":
                 System.out.println("[!] Listener not found");
-                break;
+                return 1;
+            case "Valve not found":
+                System.out.println("[!] Valve not found");
+                return 1;
+            case "thread not found":
+                System.out.println("[!] thread not found");
+                return 1;
+            case "className not found":
+                System.out.println("[!] className not found");
+                return 1;
+            case "restore failed":
+                System.out.println("[!] unload failed: transformer removed but bytecode restore failed");
+                return 1;
             default:
                 System.out.println(result);
+                return 1;
         }
     }
 
@@ -247,20 +280,21 @@ public class CompHandler {
 
     /**
      * 完整 JAD 流程：check -> jad 或 hashcode -> jad(classInfo, hash)
+     * 返回退出码: 0 成功，1 失败
      */
-    public static void handleJad(String className) {
+    public static int handleJad(String className) {
         JAD jad = new JAD();
 
         String checkResult = jad.check(className);
 
         if ("dont".equals(checkResult)) {
             System.out.println("[!] class not found: " + className);
-            return;
+            return 1;
         }
 
         if ("yes".equals(checkResult)) {
             System.out.println(jad.jad(className));
-            return;
+            return 0;
         }
 
         System.out.println("[*] class " + className + " has multiple versions, enumerating...");
@@ -268,7 +302,7 @@ public class CompHandler {
         JSONArray hashes = jad.hashcode(className);
         if (hashes == null || hashes.isEmpty()) {
             System.out.println("[!] failed to get ClassLoaderHash");
-            return;
+            return 1;
         }
 
         for (int i = 0; i < hashes.size(); i++) {
@@ -281,6 +315,7 @@ public class CompHandler {
             System.out.println();
             System.out.println(jad.jad(classInfo, hash));
         }
+        return 0;
     }
 
     // ──── list ────
@@ -300,26 +335,27 @@ public class CompHandler {
     }
 
     // ──── vmtool ────
-    public static void handleVmtool(String[] args){
+    /** 返回退出码: 0 成功，1 失败 */
+    public static int handleVmtool(String[] args){
         String className = args[2];
         String hash = args.length > 3 ? args[3] : null;
         if (hash != null && !hash.isEmpty()) {
             JSONObject result = VmtoolUtils.doGet(className, hash);
             printVmtoolResult(result);
-            return;
+            return "error".equals(result.getString("type")) ? 1 : 0;
         }
 
         JAD jad = new JAD();
         String check = jad.check(className);
         if ("dont".equals(check)) {
             System.out.println("[-] target class not found: " + className);
-            return;
+            return 1;
         }
         JSONArray hashes = jad.hashcode(className);
         if (hashes.size() == 1) {
             JSONObject result = VmtoolUtils.doGet(className, null);
             printVmtoolResult(result);
-            return;
+            return "error".equals(result.getString("type")) ? 1 : 0;
         }
         System.out.println("[*] class " + className + " has " + hashes.size() + " instances:\n");
 
@@ -332,6 +368,7 @@ public class CompHandler {
         }
         System.out.println("\nPlease select a classLoaderHash and re-run:");
         System.out.println("  java -jar KMBA.jar cli <pid> -vmtool " + className + " <classLoaderHash>");
+        return 0;
     }
 
     private static void listAndPrint(Comp c) {
@@ -344,6 +381,11 @@ public class CompHandler {
         System.out.println();
         System.out.println("  " + c.name + " (" + count + ")");
         System.out.println("  ------------------------------------------------------------");
+
+        // agent: 提示 canRetransform=true 的 transformer 需要重点关注（Agent 马注册于此）
+        if ("agent".equals(c.name)) {
+            System.out.println("  提示: canRetransform=true 的 transformer 需要重点关注（Agent 内存马注册于此）");
+        }
 
         if (count == 0) {
             System.out.println("  (empty)");
@@ -389,6 +431,7 @@ public class CompHandler {
             case "jettyFilter":              return new String[]{"filterName", "className"};
             case "jettyServlet":             return new String[]{"URLPattern", "className"};
             case "springMvcController":      return new String[]{"URLPattern", "className"};
+            case "struts2Action":            return new String[]{"URLPattern", "className"};
             case "springMvcInterceptor":     return new String[]{"interceptorName", "className"};
             case "springFluxWebFilter":      return new String[]{"filterName", "className"};
             case "springFluxNettyHandler":   return new String[]{"className"};
@@ -401,6 +444,7 @@ public class CompHandler {
             case "socket":                   return new String[]{"urlName", "className"};
             case "executor":                 return new String[]{"className"};
             case "upgrade":                  return new String[]{"upgradeName", "className"};
+            case "agent":                    return new String[]{"className", "canRetransform"};
             default:                         return null;
         }
     }
@@ -421,6 +465,11 @@ public class CompHandler {
         }
         if (obj.containsKey("basic")) {
             System.out.printf("  %-28s %s\n", "basic", obj.getString("basic"));
+            return;
+        }
+        // agent：className + canRetransform
+        if (obj.containsKey("canRetransform")) {
+            System.out.printf("  %-28s %s\n", obj.getString("className"), obj.getString("canRetransform"));
             return;
         }
         // 其他：单键值对 {标识: 类名}

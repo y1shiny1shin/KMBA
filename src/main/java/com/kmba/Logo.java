@@ -5,7 +5,7 @@ package com.kmba;
  */
 public class Logo {
 
-    public static final String VERSION = "0.6";
+    public static final String VERSION = "0.7";
 
     public static void print() {
         System.out.println(

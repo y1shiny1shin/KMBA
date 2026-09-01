@@ -73,6 +73,9 @@ public class ArthasWsWrapper {
 
         String fullCmd = cmd + PLAINTEXT;
 
+        wsClient.clear();
+        wsClient.setEnd(false);
+
         wsClient.send(JSON.toJSONString(new ArthasWsRequest(fullCmd)));
         Thread.sleep(500);
 

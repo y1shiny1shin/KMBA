@@ -5,3 +5,6 @@ target/
 release.sh
 .release_tmp/
 .release_out/
+
+arthas-boot.jar
+

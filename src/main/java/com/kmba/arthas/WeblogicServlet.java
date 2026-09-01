@@ -91,7 +91,7 @@ public class WeblogicServlet {
                 String resultStr = String.join("" ,result);
                 logger.info("/WeblogicServlet/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                     continue;
                 }

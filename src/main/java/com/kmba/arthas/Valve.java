@@ -97,7 +97,7 @@ public class Valve {
                 String resultStr = String.join("" ,result);
                 logger.info("/valve/unload: {}" ,resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                 }
 

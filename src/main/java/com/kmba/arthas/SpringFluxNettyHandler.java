@@ -88,7 +88,7 @@ public class SpringFluxNettyHandler {
                 String resultStr = String.join("" ,result);
                 logger.info("/SpringFluxNettyHandler/unload: {}" , resultStr);
                 if (resultStr.contains("Failed to execute ognl")){
-                    
+                    logger.error(resultStr);
                     failCnt++;
                 }
             }
