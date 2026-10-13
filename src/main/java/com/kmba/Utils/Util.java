@@ -34,7 +34,7 @@ public class Util {
             Pattern.compile("@Integer\\[(\\d+)]");
     // 获取实例的 classLoader 类名，获取后再通过 -classLoader 指定
 //    private static final String getClassLoaderByVmtool = "vmtool -l -1 --action getInstances --className %s --express 'instances[%s].getClass.getClassLoader.getClass.name'";
-    private static final String getClassLoaderByVmtool = "vmtool --action getInstances --className %s --express '@java.lang.Integer@toHexString(@java.lang.System@identityHashCode(instances[%s].getClass().getClassLoader()))";
+    private static final String getClassLoaderByVmtool = "vmtool --action getInstances --className %s --express '@java.lang.Integer@toHexString(@java.lang.System@identityHashCode(instances[%s].getClass().getClassLoader()))'";
 
     private static int executeCountCommand(String command, String metricName) {
         try {
