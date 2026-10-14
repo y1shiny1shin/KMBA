@@ -1,7 +1,7 @@
 # KMBA 内存马检测与卸载工具 · 功能性测试报告
 
-> **被测对象**: KMBA v0.7（Kill Memshell By Arthas），`KMBA-0.0.1-SNAPSHOT.jar`，MD5 `d22aad21793306a9f60fef97647c7d84`（39,083,904 B）
-> **报告日期**: 2026-09-01（覆盖全部累计测试；开发者四次交付：`769f37da…`（v1 dump 回灌）→ `e4d7cb1f…`（v2 CodeSource jar 原始字节回灌）→ `a25cc5bf…`（v3，开发者称修复 #31）→ 当前 `d22aad21…`（v4，2026-09-01 交付，开发者说明"把 Agent 内存马 redefine 相关部分删了，功能也改了一点点"）——v4 为当前被测物，此前各中间版（含 `1fec05c7…`）均已被覆盖，本报告所有"当前状态"结论均以 v4 实测为准（redefine 处置迭代史完整保留于 3.3.7–3.3.9 作为能力演变依据链，v4 实测见 3.3.10）；CLI banner 版本字符串见观察项 #30）
+> **被测对象**: KMBA v0.8（Kill Memshell By Arthas），`KMBA-0.0.1-SNAPSHOT.jar`，MD5 `01501f79ce33c1d25539cbc020b563d7`（39,087,753 B）
+> **报告日期**: 2026-09-01（v0.8 增补 2026-10-14；覆盖全部累计测试；开发者五次交付：`769f37da…`（v1 dump 回灌）→ `e4d7cb1f…`（v2 CodeSource jar 原始字节回灌）→ `a25cc5bf…`（v3，开发者称修复 #31）→ `d22aad21…`（v4，2026-09-01 交付，开发者说明"把 Agent 内存马 redefine 相关部分删了，功能也改了一点点"）→ **`01501f79…`（v0.8，2026-10-13 交付：redefine 处置链重建为"sc -d 确认存在 → KMBA 本进程读磁盘原始字节 → arthas redefine 回灌"，新增 `-u agent all` 与 Web「Agent类强杀」、`-l all` 卡死修复、sc -d 子类污染分块过滤；功能实测在 KMBA0 同源构建 `1193cb3a…` 上完成，功能文件与本发布构建逐字节一致，见 3.3.11）**——v0.8 为当前被测物，此前各中间版（含 `1fec05c7…`）均已被覆盖，本报告历史迭代结论以各版实测小节为准（redefine 处置迭代史完整保留于 3.3.7–3.3.10 作为能力演变依据链，v0.8 实测见 3.3.11）；CLI banner 版本字符串见观察项 #30（v0.8 起已同步））
 > **测试性质**: 对该工具的功能性测试（检出 / 反编译确认 / 卸载 / 复查 / 失效确认），非漏洞复现测试——漏洞入口仅为把内存马送进 JVM 的投递手段
 > **测试方式**: 全部环境部署在远端授权测试服务器的 Docker 中；逐环境注入公开武器化工具与公开技术文章手法的内存马，每个内存马严格执行五步验证协议，CLI 与 Web 控制台双通道；KMBA 全程单实例运行（同一时刻仅一个环境在测）
 > **脱敏声明**: 本报告不含测试服务器地址、端口、账号口令及任何可定位基础设施的信息；所有命令均在服务器本地（127.0.0.1）或容器内执行，输出中的 Docker 内网地址（172.17.0.0/16，RFC 1918 保留网段）无外部指向性
@@ -13,17 +13,17 @@
 | 维度                                         | 结果                                                         |
 | -------------------------------------------- | ------------------------------------------------------------ |
 | 环境实测                                     | 累计 25+ 个真实环境实例（去重约 17 种环境类型：Tomcat 8.5/9/10.1、Spring Boot 内嵌 Tomcat、Jetty 7/9.4、WebLogic 12.2.1.3、JBoss AS 6.1、Spring Cloud Gateway 3.1.0、Struts2 2.3.34、Jenkins 2.138、Solr 8.11.0、OFBiz 18.12.09 等） |
-| 组件类型                                     | v0.7 交付 jar 内置 **25 类组件**；五步验证通过 **24 类**（2026-08-31 复测确认：thread 子类型缺口已修复、socket 输出瑕疵已修复、listener 卸载消息已修复、filter 枚举去重已修复，见 3.7 与 3.8）；agent 的 redefine 型检出不可见（机制性盲区，维持）。redefine 处置路径迭代史：v1 假 success（3.3.7）→ v2 在样本⑥真实容器（8u151）CLI+Web 双通道五步终验通过、8u432 暴露主路径 OGNL 兼容性缺陷 #31（3.3.8）→ v3（称修复 #31）复测证实未修复，8u432 双通道假 success（3.3.9）→ **v4 开发者删除 redefine 处置链：卸载如实报失败（假 success 消除）但 8u151 既有处置能力一并消失，另新增 /agent/restore（dump-only）报 success 而不生效——新假 success 面（#32，见 3.3.10）** |
-| **Agent 内存马专项（重点）**                 | 4 个环境实例 × 6 个样本（含 MemShellParty、GitHub 开源项目、公开文章自建、redefine-only 特殊机制）× CLI+Web 双通道：**5 个 transformer 型样本五步闭环——当前 jar（v4）复测 4 环境（Tomcat 9/8u432、Tomcat 10/JDK17、Solr-Jetty/JRE8、WebLogic 容器）transformer 型五步全过、能力无回归；1 个 redefine 型样本检出不可见（原理性，维持）：处置路径迭代 v1 假 success → v2 在 8u151 双通道五步终验通过、8u432 假 success（#31）→ v3 复测 #31 未修复 → **v4 删除 redefine 处置链：卸载如实报失败（假 success 消除）但 8u151 既有处置能力随之消失，v4 新增 /agent/restore（dump-only）对 redefine 污染报 success 而不生效——新假 success 面**（迭代证据链见 3.3.7 / 3.3.8 / 3.3.9 / 3.3.10） |
-| Agent 专项新发现                             | 4+1 项功能问题（redefine 盲点：v1 回灌假 success（3.3.7）→ v2 主路径 8u151 通过、8u432 主路径 OGNL API 失败落 dump 回退（#31，3.3.8）→ v3 复测 #31 未修复，8u432 双通道假 success（3.3.9）→ v4 删除处置链：诚实拒绝但能力清零 + /agent/restore 新假 success（#32）+ vmtool bootstrap 边界（#33）+ 失败消息漂移（#34）（3.3.10） / Web 卸载失败窗口与列表残留（#10，v4 上 CLI/Web 双通道 1/1 复现） / 同名多实例半删（#15） / transformer 型列表残留需二次卸载）+ 4 项正向确认（JDK17 Unsafe 链路可用、transformer 型 restoreBytecode 有效、检测不依赖样本实现、jad 在 8u151 可见 redefine 后恶意代码——但 jad 字节来源与 JVM 版本强相关且可与运行时行为不一致，不可作回灌 ground truth，3.3.8） |
-| **组件能力闭环（2026-08-31 交付 jar 复测）** | 上一轮记录的问题项在交付 jar 上逐项复测：**thread 子类型（#12）、socket 输出（#18）、listener 卸载消息（#14）、filter 枚举去重（#22）四项修复实测确认带入**；agent redefine 回灌（#9）：v2 在 8u151 实测通过、v3 复测 8u432 双通道仍假 success（主路径 #31 未修复 + dump 回退字节会话相关，3.3.9），**v4 将处置链整体删除（#9 转为能力清零；#31 随代码删除失效——非修复）**；proxyValve 枚举面（#11）、valve 假阳性（#16）、CLI 退出码（#21）维持未修；round3 P0（listener 卸载残留）复测未复现；v4 新增 /agent/restore、-vmtool、/vmtool/get 功能并实测（#32 假 success / #33 bootstrap 边界，3.3.10） |
+| 组件类型                                     | v0.7 交付 jar 内置 **25 类组件**；五步验证通过 **24 类**（2026-08-31 复测确认：thread 子类型缺口已修复、socket 输出瑕疵已修复、listener 卸载消息已修复、filter 枚举去重已修复，见 3.7 与 3.8）；agent 的 redefine 型检出不可见（机制性盲区，维持）。redefine 处置路径迭代史：v1 假 success（3.3.7）→ v2 在样本⑥真实容器（8u151）CLI+Web 双通道五步终验通过、8u432 暴露主路径 OGNL 兼容性缺陷 #31（3.3.8）→ v3（称修复 #31）复测证实未修复，8u432 双通道假 success（3.3.9）→ **v4 开发者删除 redefine 处置链：卸载如实报失败（假 success 消除）但 8u151 既有处置能力一并消失，另新增 /agent/restore（dump-only）报 success 而不生效——新假 success 面（#32，见 3.3.10）**；**v0.8：处置链重建（sc -d → 磁盘原始字节 → redefine 回灌）+ `-u agent all`/Web 强杀，8u432 双马五步实测 redefine 马强杀闭环、#32 假 success 消除，另 `-l all` 卡死修复与 sc -d 子类污染分块过滤（3.3.11）** |
+| **Agent 内存马专项（重点）**                 | 4 个环境实例 × 6 个样本（含 MemShellParty、GitHub 开源项目、公开文章自建、redefine-only 特殊机制）× CLI+Web 双通道：**5 个 transformer 型样本五步闭环——当前 jar（v4）复测 4 环境（Tomcat 9/8u432、Tomcat 10/JDK17、Solr-Jetty/JRE8、WebLogic 容器）transformer 型五步全过、能力无回归；1 个 redefine 型样本检出不可见（原理性，维持）：处置路径迭代 v1 假 success → v2 在 8u151 双通道五步终验通过、8u432 假 success（#31）→ v3 复测 #31 未修复 → **v4 删除 redefine 处置链：卸载如实报失败（假 success 消除）但 8u151 既有处置能力随之消失，v4 新增 /agent/restore（dump-only）对 redefine 污染报 success 而不生效——新假 success 面**（迭代证据链见 3.3.7 / 3.3.8 / 3.3.9 / 3.3.10）；**v0.8 处置链重建：强杀通道五步闭环、假 success 消除（3.3.11）** |
+| Agent 专项新发现                             | 4+1 项功能问题（redefine 盲点：v1 回灌假 success（3.3.7）→ v2 主路径 8u151 通过、8u432 主路径 OGNL API 失败落 dump 回退（#31，3.3.8）→ v3 复测 #31 未修复，8u432 双通道假 success（3.3.9）→ v4 删除处置链：诚实拒绝但能力清零 + /agent/restore 新假 success（#32）+ vmtool bootstrap 边界（#33）+ 失败消息漂移（#34）（3.3.10） / Web 卸载失败窗口与列表残留（#10，v4 上 CLI/Web 双通道 1/1 复现） / 同名多实例半删（#15） / transformer 型列表残留需二次卸载）+ 4 项正向确认（JDK17 Unsafe 链路可用、transformer 型 restoreBytecode 有效、检测不依赖样本实现、jad 在 8u151 可见 redefine 后恶意代码——但 jad 字节来源与 JVM 版本强相关且可与运行时行为不一致，不可作回灌 ground truth，3.3.8）；**v0.8：#32 修复（restore 重构为真实回灌，8u432 五步实测马死亡）+ `-u agent all` 强杀通道 + sc -d 子类污染分块过滤实战验证（HttpServlet 5 块）；#10/#33/#34 维持（3.3.11）** |
+| **组件能力闭环（2026-08-31 交付 jar 复测）** | 上一轮记录的问题项在交付 jar 上逐项复测：**thread 子类型（#12）、socket 输出（#18）、listener 卸载消息（#14）、filter 枚举去重（#22）四项修复实测确认带入**；agent redefine 回灌（#9）：v2 在 8u151 实测通过、v3 复测 8u432 双通道仍假 success（主路径 #31 未修复 + dump 回退字节会话相关，3.3.9），**v4 将处置链整体删除（#9 转为能力清零；#31 随代码删除失效——非修复）**；proxyValve 枚举面（#11）、valve 假阳性（#16）、CLI 退出码（#21）维持未修；round3 P0（listener 卸载残留）复测未复现；v4 新增 /agent/restore、-vmtool、/vmtool/get 功能并实测（#32 假 success / #33 bootstrap 边界，3.3.10）；**v0.8 复测：#32 修复（restore 真实回灌）、`-u agent all` 落地、`-l all` 卡死修复（全量 47.7s 实测），#10/#11/#16/#21 维持（3.3.11）** |
 | **多马共存与协议马**                         | Tomcat 9 六马共存、Gateway 3.1.0 四马共存逐步精准卸载（"只清目标、其余存活"逐步复核）；哥斯拉协议马完整五步（pass/key/md5 三要素校验） |
-| **对业务的影响（重点）**                     | 全部卸载操作**不停机、不重启目标 JVM、零业务中断**：24 类通过组件的每个五步均以"合法组件完好（<3> 复查）+ 生产页面/接口正常响应（<4> 死亡确认）"双验证收口；共存场景逐步卸载全程"只清目标、其余存活"；卸载附带**原地恢复**——Agent 组件（transformer 型）经 restoreBytecode 即时还原被插桩宿主类（ApplicationFilterChain / HttpServlet / ServletHandler，无需重启进程）、proxyValve 卸载后管线槽位还原原始 valve、executor 卸载后恢复原始 executor；全程未出现 attach 或卸载操作导致的业务异常、误伤合法组件或服务重启。影响业务的场景是 redefine 型样本未被清除（内存马持续存活、可执行命令）：v1 报 success 而实际未还原（假 success，3.3.7），业务侧对"卸载已完成"产生错误确认；v2 在 8u151 场景闭环、8u432 双通道假 success（#31，3.3.8/3.3.9）；**v4 删除 redefine 处置链后该场景不再报假 success（卸载如实报失败、内存马存活——从"误导"变为"无能"），但 v4 新增的 /agent/restore 对 redefine 污染重新引入假 success**（dump-only 报 success，8u432 清态与 8u151 双环境实测内存马均存活，#32，3.3.10）——业务侧若以 restore 输出为确认依据将再次产生错误确认。该场景对业务无破坏性操作，属查杀能力未闭环而非工具对业务的破坏 |
+| **对业务的影响（重点）**                     | 全部卸载操作**不停机、不重启目标 JVM、零业务中断**：24 类通过组件的每个五步均以"合法组件完好（<3> 复查）+ 生产页面/接口正常响应（<4> 死亡确认）"双验证收口；共存场景逐步卸载全程"只清目标、其余存活"；卸载附带**原地恢复**——Agent 组件（transformer 型）经 restoreBytecode 即时还原被插桩宿主类（ApplicationFilterChain / HttpServlet / ServletHandler，无需重启进程）、proxyValve 卸载后管线槽位还原原始 valve、executor 卸载后恢复原始 executor；全程未出现 attach 或卸载操作导致的业务异常、误伤合法组件或服务重启。影响业务的场景是 redefine 型样本未被清除（内存马持续存活、可执行命令）：v1 报 success 而实际未还原（假 success，3.3.7），业务侧对"卸载已完成"产生错误确认；v2 在 8u151 场景闭环、8u432 双通道假 success（#31，3.3.8/3.3.9）；**v4 删除 redefine 处置链后该场景不再报假 success（卸载如实报失败、内存马存活——从"误导"变为"无能"），但 v4 新增的 /agent/restore 对 redefine 污染重新引入假 success**（dump-only 报 success，8u432 清态与 8u151 双环境实测内存马均存活，#32，3.3.10）——业务侧若以 restore 输出为确认依据将再次产生错误确认。该场景对业务无破坏性操作，属查杀能力未闭环而非工具对业务的破坏；**v0.8：restore 重构为真实回灌后该错误确认面消除——8u432 双马五步实测 redefine 马 restore 强杀后命令失效、探针 +0（3.3.11）** |
 | 高版本 JDK                                   | JDK 17（jakarta 命名空间）filter 与 agent 两类均 CLI+Web 全链通过（含模块系统下 Unsafe 自动降级链）；v4 复测 agent 样本④ CLI 五步全过（Agent 代码已随 redefine 处置链删除而变更，3.3.10） |
-| 缺陷修复史                                   | 测试过程中发现 7 个缺陷 → 均经修复后复验通过（PASS=45 FAIL=0 及后续回归）；round3 修复项中 proxyValve / socket / struts2Action 新增已在交付 jar 实测确认；**2026-08-31 交付 jar 复测确认 4 项修复带入（thread 子类型 / socket 输出 / listener 消息 / filter 去重）**，agent redefine 回灌修复 v2 在 8u151 实测通过（3.3.8）、8u432 假 success 遗留（新发现 #31；v3 复测证实 #31 未修复，3.3.9）；**v4 将 redefine 处置链整体删除（#31 随之失效——属功能删除非修复；#9 转为能力清零），新增 /agent/restore 与 vmtool 功能并实测出新假 success（#32）与 bootstrap 边界（#33），3.3.10**，round3 P0（listener 卸载残留）复测未复现 |
-| 存留问题                                     | **14 项**（2 项 P0 + 3 项 P1 + 9 项 P2）+ 7 项观察记录；另有 1 项（#31）随 v4 功能删除而失效（非修复），详见第八节问题清单，均有复现输出依据 |
+| 缺陷修复史                                   | 测试过程中发现 7 个缺陷 → 均经修复后复验通过（PASS=45 FAIL=0 及后续回归）；round3 修复项中 proxyValve / socket / struts2Action 新增已在交付 jar 实测确认；**2026-08-31 交付 jar 复测确认 4 项修复带入（thread 子类型 / socket 输出 / listener 消息 / filter 去重）**，agent redefine 回灌修复 v2 在 8u151 实测通过（3.3.8）、8u432 假 success 遗留（新发现 #31；v3 复测证实 #31 未修复，3.3.9）；**v4 将 redefine 处置链整体删除（#31 随之失效——属功能删除非修复；#9 转为能力清零），新增 /agent/restore 与 vmtool 功能并实测出新假 success（#32）与 bootstrap 边界（#33），3.3.10**，round3 P0（listener 卸载残留）复测未复现；**v0.8：#32 修复（restore 真实回灌 + `-u agent all`）、`-l all` 卡死修复实测带入，redefine 型处置能力恢复（3.3.11）** |
+| 存留问题                                     | **v0.7 时 14 项 → v0.8 后 13 项**（1 项 P0 + 3 项 P1 + 9 项 P2：#32 于 v0.8 修复转入已修复清单；#31 随 v4 功能删除失效非修复；#9 处置通道 v0.8 恢复、检出盲区维持）+ 7 项观察记录，详见第八节问题清单，均有复现输出依据 |
 
-**总体结论**: 对 Filter / Servlet / Listener / Valve / 定时与线程类 / Spring MVC / Spring WebFlux / Jetty / WebLogic / Struts2 Action / WebSocket 等主流内存马类型，KMBA 的 **检出 → 反编译确认 → 卸载 → 复查 → 失效确认** 全部闭环；Web 控制台与 CLI 能力一致；上一轮存留的 4 项组件级问题（thread 子类型枚举 / socket 输出 / listener 消息 / filter 去重）在 2026-08-31 交付 jar 上复测确认修复。**Agent 内存马**：对"注册 ClassFileTransformer"这一主流实现（含 ASM / Javassist 两类字节码库、javax / jakarta 双命名空间、Tomcat / Jetty / 多插桩目标）检出卸载可靠——当前 jar（v4，删除 redefine 处置链后的交付物）复测 4 环境（Tomcat 9/8u432、Tomcat 10/JDK17、Solr-Jetty/JRE8、WebLogic 容器）transformer 型五步全过，能力无回归。对**仅 redefineClasses、不注册 transformer** 的特殊实现：检出不可见（transformer 枚举原理性盲区，维持）；处置路径历经 v1 假 success（3.3.7）→ v2 在样本⑥真实容器（8u151）CLI+Web 双通道五步终验通过、8u432 暴露主路径兼容性缺陷 **#31**（OGNL `sun.misc.IOUtils.readFully(-1)` 被该 JDK 构建拒绝 → 落 dump 回退，回退字节来源会话相关）（3.3.8）→ v3 复测证实 #31 未修复、8u432 双通道假 success（3.3.9）→ **v4 开发者删除 redefine 处置链（`AgentUtils` 整类移除）：卸载不再假 success（CLI/Web 如实报失败、内存马存活），但 v2/v3 在 8u151 上真实可用的回灌能力随代码删除一并消失——redefine 型从"部分误导"变为"完全无处置"，8u432 假 success 的消除以删除 8u151 真实能力为代价**；v4 新增的 `/agent/restore`（web-only、仅 dump）对 redefine 污染报 success 而不生效（8u432 清态与 8u151 双环境实锤，dump 取到被改写字节 `2b7731e2…`）——**新假 success 面（#32）**；新增 vmtool 双通道功能可用，但 bootstrap 加载类不可用且 Web 端把错误文本包进 `type=single`（#33）。Web 端 Agent 卸载"实例顺序漂移"导致的失败窗口与列表残留（#10）在 v4 上 CLI/Web 双通道 1/1 复现；同 JVM 同目标失败消息随会话/通道漂移（not found / OGNL execute failed，#34）。**对业务的影响**：卸载动作本身对业务无损——不停机、不重启目标 JVM，被插桩宿主类字节码与管线/组件状态原地还原，全部测试中合法组件与生产功能零中断、零误伤；唯一例外仍是 redefine 型样本未被清除的场景——内存马实际持续存活：v4 卸载路径已如实报失败（不再误导"卸载已完成"的确认），但 /agent/restore 报 success 而内存马存活，业务侧若以 restore 输出为确认依据将再次产生错误确认（属查杀能力未闭环，非工具对业务的破坏性操作）。
+**总体结论**: 对 Filter / Servlet / Listener / Valve / 定时与线程类 / Spring MVC / Spring WebFlux / Jetty / WebLogic / Struts2 Action / WebSocket 等主流内存马类型，KMBA 的 **检出 → 反编译确认 → 卸载 → 复查 → 失效确认** 全部闭环；Web 控制台与 CLI 能力一致；上一轮存留的 4 项组件级问题（thread 子类型枚举 / socket 输出 / listener 消息 / filter 去重）在 2026-08-31 交付 jar 上复测确认修复。**Agent 内存马**：对"注册 ClassFileTransformer"这一主流实现（含 ASM / Javassist 两类字节码库、javax / jakarta 双命名空间、Tomcat / Jetty / 多插桩目标）检出卸载可靠——当前 jar（v4，删除 redefine 处置链后的交付物）复测 4 环境（Tomcat 9/8u432、Tomcat 10/JDK17、Solr-Jetty/JRE8、WebLogic 容器）transformer 型五步全过，能力无回归。对**仅 redefineClasses、不注册 transformer** 的特殊实现：检出不可见（transformer 枚举原理性盲区，维持）；处置路径历经 v1 假 success（3.3.7）→ v2 在样本⑥真实容器（8u151）CLI+Web 双通道五步终验通过、8u432 暴露主路径兼容性缺陷 **#31**（OGNL `sun.misc.IOUtils.readFully(-1)` 被该 JDK 构建拒绝 → 落 dump 回退，回退字节来源会话相关）（3.3.8）→ v3 复测证实 #31 未修复、8u432 双通道假 success（3.3.9）→ **v4 开发者删除 redefine 处置链（`AgentUtils` 整类移除）：卸载不再假 success（CLI/Web 如实报失败、内存马存活），但 v2/v3 在 8u151 上真实可用的回灌能力随代码删除一并消失——redefine 型从"部分误导"变为"完全无处置"，8u432 假 success 的消除以删除 8u151 真实能力为代价**；v4 新增的 `/agent/restore`（web-only、仅 dump）对 redefine 污染报 success 而不生效（8u432 清态与 8u151 双环境实锤，dump 取到被改写字节 `2b7731e2…`）——**新假 success 面（#32）**；新增 vmtool 双通道功能可用，但 bootstrap 加载类不可用且 Web 端把错误文本包进 `type=single`（#33）。Web 端 Agent 卸载"实例顺序漂移"导致的失败窗口与列表残留（#10）在 v4 上 CLI/Web 双通道 1/1 复现；同 JVM 同目标失败消息随会话/通道漂移（not found / OGNL execute failed，#34）。**对业务的影响**：卸载动作本身对业务无损——不停机、不重启目标 JVM，被插桩宿主类字节码与管线/组件状态原地还原，全部测试中合法组件与生产功能零中断、零误伤；唯一例外仍是 redefine 型样本未被清除的场景——内存马实际持续存活：v4 卸载路径已如实报失败（不再误导"卸载已完成"的确认），但 /agent/restore 报 success 而内存马存活，业务侧若以 restore 输出为确认依据将再次产生错误确认（属查杀能力未闭环，非工具对业务的破坏性操作）。**v0.8 更新（2026-10-13）**：redefine 处置链重建为 sc -d → 磁盘原始字节 → redefine 回灌（不经 OGNL 提取，v2/v3 的 #31 模板问题与 dump 回退通道一并退出），强杀通道（`-u agent all` / Web「Agent类强杀」）落地；8u432 双马五步实测 redefine 马强杀闭环（restore success 16.6s 后命令失效、探针 +0）、#32 假 success 消除；`-l all` 卡死修复（全量 47.7s）与 sc -d 子类污染分块过滤（HttpServlet 5 块实战样本）同批带入（3.3.11）。
 
 ---
 
@@ -83,7 +83,7 @@
 | weblogicServlet             | 全链                                                         | WebLogic 12.2.1.3                                            | ✅                                                            |
 | weblogicListener            | 全链                                                         | WebLogic 12.2.1.3                                            | ✅                                                            |
 | **agent**（transformer 型） | 全链                                                         | 5 样本 × Tomcat9/Tomcat10-JDK17/Solr                         | ✅（详见 3.3 专项）                                           |
-| **agent**（redefine 型）    | 检出不可见（原理性，维持）；处置迭代：v1 假 success → v2 8u151 CLI+Web 五步通过 / 8u432 **Web 假 success（#31）** → v3 复测 #31 未修复、8u432 双通道假 success → **v4 删除处置链：CLI/Web 如实报失败、内存马存活（8u151 既有能力消失）；新增 /agent/restore（dump-only）报 success 不生效** | WebLogic 12.2.1.3（样本⑥真实容器）；复测 Tomcat 9 · JDK 8u432 双通道 | ⚠️ 检出盲区维持；v4 redefine 型处置能力清零（诚实拒绝）+ /agent/restore 新假 success（3.3.7–3.3.10） |
+| **agent**（redefine 型）    | 检出不可见（原理性，维持）；处置迭代：v1 假 success → v2 8u151 CLI+Web 五步通过 / 8u432 **Web 假 success（#31）** → v3 复测 #31 未修复、8u432 双通道假 success → **v4 删除处置链：CLI/Web 如实报失败、内存马存活（8u151 既有能力消失）；新增 /agent/restore（dump-only）报 success 不生效** | WebLogic 12.2.1.3（样本⑥真实容器）；复测 Tomcat 9 · JDK 8u432 双通道 | ⚠️ 检出盲区维持；v4 redefine 型处置能力清零（诚实拒绝）+ /agent/restore 新假 success（3.3.7–3.3.10）；**v0.8 处置链重建：restore 强杀通道五步闭环（8u432 redefine 马实测马死亡）、假 success 消除（3.3.11）** |
 | **struts2Action**           | 全链                                                         | Struts 2.3.34 showcase                                       | ✅（本轮闭环 round3 能力边界，见 3.6）                        |
 | **proxyValve**              | first/basic 槽位形状全链                                     | Tomcat 9.0.97                                                | ⚠️ 五步全过，但枚举面覆盖不全（engine/host 管线与中间槽位代理不可见，见 3.7） |
 | **socket**（WebSocket）     | 全链                                                         | Tomcat 9.0.97；交付 jar 复测                                 | ✅（首条目输出乱码已修复，见 3.8）                            |
@@ -236,7 +236,7 @@ KMBA 的 `agent` 组件与其它组件模型不同：它不感知业务组件（
 
 **Web 五步——与 CLI 完全一致**：`connect?pid=214` → `success`；`/agent/list` 仅自噪音；`/agent/unload?className=c` 与 `?className=weblogic.servlet.internal.HttpConnectionHandler` 均 `className not found`；复查无变化；死亡确认**存活**。
 
-**结论**：KMBA 的检出模型完全建立在"枚举已注册的 ClassFileTransformer"之上，对**仅 redefineClasses 的 Agent 内存马**检不出、卸不掉，五步走完后内存马仍可执行命令——这是本次 Agent 专项最重要的功能性缺口，证据链完整（命令回显、两次 CLI unload、两次 Web unload、存活复验）。→ 针对该盲点的卸载回灌修复（transformer 未命中时按宿主类名 dump + redefine 回灌）**在 2026-08-31 交付 jar 上复测未通过：报 success 而内存马存活（假 success），详见 3.3.7**；修复 v2 终验通过见 3.3.8；**v4（2026-09-01）开发者删除 redefine 处置链：卸载如实报失败、内存马存活，v2/v3 的 8u151 能力消失，另新增 /agent/restore 假 success 面，见 3.3.10**。
+**结论**：KMBA 的检出模型完全建立在"枚举已注册的 ClassFileTransformer"之上，对**仅 redefineClasses 的 Agent 内存马**检不出、卸不掉，五步走完后内存马仍可执行命令——这是本次 Agent 专项最重要的功能性缺口，证据链完整（命令回显、两次 CLI unload、两次 Web unload、存活复验）。→ 针对该盲点的卸载回灌修复（transformer 未命中时按宿主类名 dump + redefine 回灌）**在 2026-08-31 交付 jar 上复测未通过：报 success 而内存马存活（假 success），详见 3.3.7**；修复 v2 终验通过见 3.3.8；**v4（2026-09-01）开发者删除 redefine 处置链：卸载如实报失败、内存马存活，v2/v3 的 8u151 能力消失，另新增 /agent/restore 假 success 面，见 3.3.10**；**v0.8 处置链重建后，同机制复刻装置（8u432 redefine 马）经 restore 强杀五步闭环（3.3.11）**。
 
 #### 3.3.6 Agent 专项小结与发现
 
@@ -249,11 +249,11 @@ KMBA 的 `agent` 组件与其它组件模型不同：它不感知业务组件（
 | ③ 自建 HttpServlet 钩子            | Tomcat9 · JDK8      | addTransformer（同名双实例） | ✅    | ✅ CLI+Web                        | ✅（单次删一实例）                                            | ⚠️ 残留一个 | ✅                                      |
 | ④ MSP jakarta                      | Tomcat10 · JDK17    | addTransformer               | ✅    | ✅ CLI+Web                        | ✅ CLI 一次 / ⚠️ Web 首次 not-found 后重试成功                 | ✅          | ✅                                      |
 | ⑤ MSP Jetty Handler                | Solr · JRE8         | addTransformer               | ✅    | ✅ CLI+Web                        | ✅ CLI 一次 / ⚠️ Web 首次 not-found 后重试成功                 | ✅          | ✅                                      |
-| ⑥ Weblogic404Memshell              | WebLogic · JDK8u151 | **仅 redefineClasses**       | ✅    | ❌ CLI+Web 均不可见（原理性盲区） | 迭代：v0.7 not found / v1 假 success / 修复 v2 双通道五步终验（CodeSource jar 回灌，3.3.8；8u432 上 Web 假 success，#31）/ v3 维持 → **v4 删除处置链：卸载如实报失败（CLI "OGNL execute failed" / Web "className not found"）、马存活；/agent/restore 报 success 马仍存活（3.3.10）** | ✅          | ⑥ v2 终验后 ✅（404）；**v4 下 ❌ 存活** |
+| ⑥ Weblogic404Memshell              | WebLogic · JDK8u151 | **仅 redefineClasses**       | ✅    | ❌ CLI+Web 均不可见（原理性盲区） | 迭代：v0.7 not found / v1 假 success / 修复 v2 双通道五步终验（CodeSource jar 回灌，3.3.8；8u432 上 Web 假 success，#31）/ v3 维持 → **v4 删除处置链：卸载如实报失败（CLI "OGNL execute failed" / Web "className not found"）、马存活；/agent/restore 报 success 马仍存活（3.3.10）** | ✅          | ⑥ v2 终验后 ✅（404）；v4 下 ❌ 存活；**v0.8 同机制复刻装置（8u432）restore 强杀后 ✅（3.3.11）** |
 
 **发现清单**：
 
-1. **❌ 功能盲点（缺陷）**：仅 `redefineClasses`、不注册 transformer 的 Agent 内存马完全绕过 KMBA 的检出与卸载模型（样本⑥，CLI+Web 双通道证据）。jad 能力本可见到 redefine 后的恶意字节码，但未参与检出判定。→ 针对该盲点的卸载回灌修复（按宿主类名 dump + redefine 还原）在 2026-08-31 交付 jar 上复测未通过：报 success 而内存马存活（假 success）（3.3.7）；修复 v2（CodeSource jar 原始字节回灌）在样本⑥真实容器（8u151）CLI+Web 双通道五步终验通过（3.3.8）；但 8u432 复测发现 v2 主路径 OGNL 兼容性缺陷（#31），第三交付 v3（称修复 #31）复测证实模板未改、未修复——**8u432 CLI 与 Web 双通道均假 success**（3.3.9）；检出侧维持沉默。**v4（`d22aad21…`）开发者删除 redefine 处置链（`AgentUtils` 整类移除）：卸载如实报失败（假 success 消除）但 v2/v3 的 8u151 处置能力随之消失，并新增 /agent/restore 假 success 面（3.3.10）**。
+1. **❌ 功能盲点（缺陷）**：仅 `redefineClasses`、不注册 transformer 的 Agent 内存马完全绕过 KMBA 的检出与卸载模型（样本⑥，CLI+Web 双通道证据）。jad 能力本可见到 redefine 后的恶意字节码，但未参与检出判定。→ 针对该盲点的卸载回灌修复（按宿主类名 dump + redefine 还原）在 2026-08-31 交付 jar 上复测未通过：报 success 而内存马存活（假 success）（3.3.7）；修复 v2（CodeSource jar 原始字节回灌）在样本⑥真实容器（8u151）CLI+Web 双通道五步终验通过（3.3.8）；但 8u432 复测发现 v2 主路径 OGNL 兼容性缺陷（#31），第三交付 v3（称修复 #31）复测证实模板未改、未修复——**8u432 CLI 与 Web 双通道均假 success**（3.3.9）；检出侧维持沉默。**v4（`d22aad21…`）开发者删除 redefine 处置链（`AgentUtils` 整类移除）：卸载如实报失败（假 success 消除）但 v2/v3 的 8u151 处置能力随之消失，并新增 /agent/restore 假 success 面（3.3.10）**。**v0.8（`01501f79…`，2026-10-13）重建处置链：sc -d 确认类存在并取 code-source → KMBA 本进程读宿主磁盘 jar 原始字节（不经 OGNL 提取，#31 模板路线整体退出；不经 dump，3.3.8 结论沿用）→ 落盘临时目录 → arthas redefine 回灌；redefine 型经 `-u agent all`/Web「Agent类强杀」强杀五步闭环（8u432 实测），假 success 消除（3.3.11）。**
 2. **⚠️ 失败窗口 / 列表残留（缺陷）**：Web 端 `/agent/unload` 的"逐命令独立枚举 `instances[i]`"模型存在顺序漂移——上一轮表现为"list 可检出 + shell 存活 + unload `className not found`"偶发失败窗口（样本④ JDK17 与样本⑤ JRE8 双重复现）；2026-08-31 交付 jar 复测以第二张面孔复现：**单次 unload 报 success、钩子已死亡，但列表残留 1 条 transformer 条目，需第二次 unload 才清零**（同机制样本③复跑 5/5 复现，web 日志地面真值：unload 循环内 `instances[3]` 返回 removed、随后 `/agent/list` 在 `instances[6]` 才探到该条目——漂移发生在同一次卸载调用的多条命令之间）。根因同一：`instances.length` 计数 + 逐 index 独立 vmtool 探测的模式与 arthas 堆扫描顺序漂移相错位；每次 loadAgent/attach 使 InstrumentationImpl 实例数增长加剧漂移。建议 unload 循环内重新查询实例（或按对象标识定位）消除跨命令错位。
 3. **⚠️ 卸载语义（观察）**：同名多实例场景的清除语义两组件不同步——listener 组件在交付 jar 上已改进为单次最多删 10 份（12 副本实测恰删 10、余 2 需二次调用，消息不披露剩余数）；agent transformer 组件单实例场景仍存在列表残留（见上一条）。死亡判定不受影响。
 4. **✅ 正向**：检出模型不依赖样本实现——ASM/Javassist、不同类名/包名/伪装类、javax/jakarta、Tomcat/Jetty 不同插桩目标，凡注册 transformer 均可检出并卸载（2026-08-31 交付 jar 以样本③复跑 6 轮 + 冒烟确认全链）。
@@ -425,6 +425,73 @@ Web：容器重启清态重注入（探针计数 4 存活）→ `/arthas/connect
 3. `/agent/restore` 为新假 success 面（#32）：dump-only 无法恢复 redefine 污染却报 success，清态 8u432 与 8u151 双环境实锤；
 4. vmtool 双通道可用（多实例消歧 / 单实例 / 负例），bootstrap 加载类不可用且 Web 端错误包裹为 type=single（#33）；
 5. 历史问题：#10 残留 1/1×2 通道维持；失败消息漂移为新观察（#34）；#31 随 `AgentUtils` 删除而失效（非修复）；#23/#21 未触及场景未复测。
+
+#### 3.3.11 v0.8 实测——redefine 处置链重建 + 强杀通道落地（2026-10-13 第五次交付）
+
+**背景**：v4 删除处置链后 redefine 型陷入"查出即无解"（3.3.10）。本版以"不依赖 OGNL 提取、不依赖 dump"的磁盘字节回灌路线重建处置链，新增全清单强杀通道，并同批带入 `-l all` 卡死修复。完整日志：`logs/agent-1013-codesource-redefine-restore.md`（处置链调试）、`logs/agent-1013-agentcrack-redefine-memshell.md`（双马五步终验）。
+
+**1. 交付物与实测物一致性**
+
+- 发布构建 `KMBA-0.0.1-SNAPSHOT.jar`：MD5 `01501f79ce33c1d25539cbc020b563d7`（39,087,753 B），banner 0.8。
+- 功能实测在 KMBA0 开发树同源构建 `1193cb3a…`（39,090,567 B）上完成；对两构建逐一比对 Agent.class / Dict.class / CliHandler.class / CompHandler.class / config.js / index.html / index.js **逐字节一致**，差异仅两处且不影响功能结论：① 开发树独有的 TongWeb.java（#26 暂缓，未被任何代码引用，不参与行为）② banner 版本字符串（实测构建为 0.7，发布构建为 0.8）。
+
+**2. 处置链重构（Agent.java `restoreBytecode`）**
+
+```
+sc -d <类> 确认存在（无 class-info 即如实失败）
+  → extractCodeSource：按 class-info 块过滤、className 精确匹配，取 code-source（宿主 jar 磁盘路径）
+  → readOriginalBytes → readClassFromCodeSource：裸 jar 路径 / file: / 解压目录 / Spring Boot 嵌套 jar:file:…!/…!/（%20 解码；readJarEntry 以 JarInputStream 流式读取）
+  → writeTempClass：落盘 Dict.TMP_DIR（Linux /tmp/kmba，Windows %TMP%\kmba）
+  → arthas redefine 回灌 → 输出含 error 即如实失败
+```
+
+与 v2/v3 路线的关系：**不经 OGNL**（v2/v3 的 #31 `readFully(-1)` 模板问题整体退出）、**不经 dump**（dump 字节来源会话相关、不可作回灌依据的结论沿用 3.3.8）。
+
+**3. sc -d 子类污染分块过滤**
+
+`sc -d` 默认附带已加载子类，结果含目标类 + 全部子类块。`extractCodeSource` 按 class-info 块的 className 精确匹配取目标的 code-source。实战样本：`sc -d javax.servlet.http.HttpServlet` 返回 5 块（HttpServlet / DefaultServlet / HttpJspBase / JspServlet / org.apache.jsp.index_jsp），过滤仅取 servlet-api.jar 的 HttpServlet——8u432 实测通过。
+
+**4. 强杀通道与行为矩阵（8u432 双马装置：transformer 马 MSP `TomcatFilterChainAgentInjector` + agentcrack 式 redefine 马）**
+
+| 入口 | transformer 马 | redefine 马 |
+| --- | --- | --- |
+| `-u agent <className>` / Web 卸载 | ✅ 卸载（23.6s） | ❌ 如实报 className not found |
+| `-u agent all`（CLI） / Web「Agent类强杀」（`/agent/restore`） | ——（应先用上行卸载） | ✅ 唯一处置路径（restore 强杀） |
+
+`-l agent` 对 redefine 马维持不可见（transformer 枚举原理性盲区，原则性维持，见四）；`-l all` 可见 InstrumentationImpl 实例计数。
+
+**5. 五步法实测（两马各验）**
+
+| 步骤 | transformer 马 | redefine 马 |
+| --- | --- | --- |
+| <0> 注入后命令执行 | ✅ | ✅ |
+| <1> list 发现 | ✅ | ❌（检出盲区，维持） |
+| <2> unload 卸载 | ✅（23.6s） | ❌（诚实拒绝）→ 补强杀：restore success 16.6s |
+| <3> list 确认卸载 | ✅ | ——（同 <1>；强杀后 InstrumentationImpl 计数不变属正常） |
+| <4> 命令失效 | ✅ | ✅（强杀后 `?cmd=id` 无回显、探针 +0、Web 恢复欢迎页） |
+
+- 探针计数口径：`[REDEFINED-PROBE] uid=probe`（`?__probe__=1`）与 `[REDEFINED-PROBE] cmd executed:`（`?cmd=`）两类行并存，判断钩子生死必须只数 `uid=probe` 或按 `docker logs -t` 时间归属——本轮曾因混数出现 8→10 假异常，复盘记录于测试日志 §5。
+- 注入后立即 list 可能仅见 TransformerManager 噪声（attach→list 注册竞态），1–2s 后复查正常，属测试装置注意项而非工具缺陷。
+
+**6. `-l all` 卡死修复（首次进入发布树）**
+
+根因：`Util.getClassLoaderByVmtool` 模板缺收尾单引号（模板替换时丢失），arthas 终端把未闭合引号当续行输入 → 无输出 → KMBA 60s 轮询超时级联（后续全部命令各烧 60s）。修复后 8u432 双马装置全量 `-l all` 实测 **47.7s** 正常返回。
+
+**7. 失败文案中性化（#34 部分）**
+
+restore 失败提示 "restore failed" → "bytecode restore failed"；CLI 提示行补处置口径（`能查出的马先卸载(-u agent <className>)再强杀一次(-u agent all)，查不出的马直接强杀(-u agent all)`）。同 JVM 同目标消息随会话/通道漂移本身维持观察（#34）。
+
+**8. 装置备注与开放观察**
+
+- 注入装置：`RedefineMakerCmd.java`（KMBA0 开发树 kmbatest/poc，-agent redeliver 前置），替代 v2/v3 的 OGNL 注入面。
+- 开放观察（未修复）：① agent shutdown 副作用——kill agent 进程后宿主类字节可能回退为运行态污染字节（8u151 观察），故处置完成后不要重启 agent 进程；② `sendStopToAgent` / `forceStop` 停止路径不对称。
+
+**9. 小结**
+
+1. redefine 型处置闭环恢复：restore 真实回灌（非 dump、非 OGNL），8u432 双马五步实测强杀后命令失效，#32 假 success 消除（修复确认）；
+2. 检出盲区维持（机制性，#9 检出面）；transformer 马卸载路径无回归；
+3. #31 路线（OGNL 提取）随重构整体弃用；`-l all` 卡死修复实测带入；
+4. #34 文案中性化带入（漂移本身维持）；#10/#11/#16/#21 未触及场景未复测、维持。
 
 ---
 
@@ -629,7 +696,7 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 
 | 项                    | 交付 jar 复测结果                                            |
 | --------------------- | ------------------------------------------------------------ |
-| #9 redefine 回灌      | ❌ **假 success 双通道**（探针 8→14 / 16→22 持续触发；根因 dump=改写后字节；对照实验证明机制方向可行）——退回存留，见 3.3.7；**后续 v2 jar（`e4d7cb1f…`）复测：8u151 双通道通过、8u432 Web 通道仍假 success（主路径 #31 连锁），部分修复**（3.3.8）；**v3 jar（`a25cc5bf…`，称修复 #31）复测：8u432 CLI 也取到被改写字节 → 双通道假 success，#31 未修复**（3.3.9）；**v4 jar（`d22aad21…`）开发者删除处置链：卸载如实报失败、马存活（8u151 能力消失），另 /agent/restore 假 success（#32）**（3.3.10） |
+| #9 redefine 回灌      | ❌ **假 success 双通道**（探针 8→14 / 16→22 持续触发；根因 dump=改写后字节；对照实验证明机制方向可行）——退回存留，见 3.3.7；**后续 v2 jar（`e4d7cb1f…`）复测：8u151 双通道通过、8u432 Web 通道仍假 success（主路径 #31 连锁），部分修复**（3.3.8）；**v3 jar（`a25cc5bf…`，称修复 #31）复测：8u432 CLI 也取到被改写字节 → 双通道假 success，#31 未修复**（3.3.9）；**v4 jar（`d22aad21…`）开发者删除处置链：卸载如实报失败、马存活（8u151 能力消失），另 /agent/restore 假 success（#32）**（3.3.10）；**v0.8 jar（`01501f79…`）处置链重建（sc -d → 磁盘原始字节 → redefine 回灌，不经 OGNL/dump）：8u432 双马装置 restore 强杀五步闭环（success 16.6s 后命令失效、探针 +0），#32 假 success 消除；检出盲区维持**（3.3.11） |
 | #10 agent 卸载窗口    | ❌ "列表残留需二次卸载"面孔 5/5 复现（同根因：逐命令独立枚举漂移），见 3.3.6 发现 2 |
 | #11 proxyValve 枚举面 | ❌ 维持（3.7 复测段）                                         |
 | #13 / #17 / #19 / #20 | —（对应类字节码一致，维持上一轮结论）                        |
@@ -648,7 +715,7 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 
 | #    | 边界                                                         | 实测证据                                                     |
 | ---- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| 1    | **Agent redefine 型内存马**（仅 `redefineClasses`、不注册 transformer）检出不可见（transformer 枚举原理性盲区，维持）；处置路径迭代：v1 dump 回灌报 success 不生效（8u432 类 JVM 上 dump 取到被改写后的字节，回灌等于重放恶意字节）；v2 CodeSource 主路径 8u151 闭环、8u432 上主路径 OGNL 被拒绝（#31）且 dump 回退字节来源会话相关；v3 复测证实 #31 未修复——8u432 CLI 与 Web 双通道假 success；**v4 删除处置链：CLI/Web 如实报失败（假 success 消除）但 8u151 既有处置能力一并消失，全环境无处置；新增 /agent/restore（dump-only）报 success 不生效——新假 success 面（#32）** | 样本⑥ WebLogic 复现（3.3.5）；v1 双通道假 success + dump 字节比对 + 原始字节 redefine 对照实验（3.3.7）；v2 双环境双通道复测：8u151 提取物 md5 逐字节一致 + Web 日志全链、8u432 readFully(-1) 失败与 CLI/Web dump 字节 md5 对照（3.3.8）；v3 复测：8u432 双通道假 success + 8u151 主路径回归通过（3.3.9）；v4 四环境双通道 + redefine 探针诚实拒绝 + 清态/历史会话 restore 对照（dump `2b7731e2…` 污染字节 vs `6430d8b2…` 干净字节）+ 8u151 restore 假 success（3.3.10） |
+| 1    | **Agent redefine 型内存马**（仅 `redefineClasses`、不注册 transformer）检出不可见（transformer 枚举原理性盲区，维持）；处置路径迭代：v1 dump 回灌报 success 不生效（8u432 类 JVM 上 dump 取到被改写后的字节，回灌等于重放恶意字节）；v2 CodeSource 主路径 8u151 闭环、8u432 上主路径 OGNL 被拒绝（#31）且 dump 回退字节来源会话相关；v3 复测证实 #31 未修复——8u432 CLI 与 Web 双通道假 success；**v4 删除处置链：CLI/Web 如实报失败（假 success 消除）但 8u151 既有处置能力一并消失，全环境无处置；新增 /agent/restore（dump-only）报 success 不生效——新假 success 面（#32）** | 样本⑥ WebLogic 复现（3.3.5）；v1 双通道假 success + dump 字节比对 + 原始字节 redefine 对照实验（3.3.7）；v2 双环境双通道复测：8u151 提取物 md5 逐字节一致 + Web 日志全链、8u432 readFully(-1) 失败与 CLI/Web dump 字节 md5 对照（3.3.8）；v3 复测：8u432 双通道假 success + 8u151 主路径回归通过（3.3.9）；v4 四环境双通道 + redefine 探针诚实拒绝 + 清态/历史会话 restore 对照（dump `2b7731e2…` 污染字节 vs `6430d8b2…` 干净字节）+ 8u151 restore 假 success（3.3.10）；v0.8 处置链重建（sc -d → 磁盘原始字节 → redefine 回灌）+ `-u agent all`/Web 强杀：8u432 双马五步实测强杀闭环、#32 假 success 消除，HttpServlet 5 块子类过滤实战样本（3.3.11） |
 | 2    | **proxyValve 枚举面仅覆盖 StandardContext 管线的 first/basic 槽位**：engine/host 管线代理完全不可见（两 valve 组件均不遍历非 context 管线）、中间槽位代理对 proxyValve 不可见 | 三级管线 3 条活体代理 0/3 检出（2026-08-31 交付 jar 复测维持）；反编译归因一致（3.7） |
 | 3    | **engine/host 管线代理无可达清除路径**：valve 组件可兜底清除 context 级中间槽代理（按类名精确匹配无误伤），但 engine/host 级代理在全部组件中无入口 | 兜底清除成功（context 级）+ 两组件遍历范围反编译证据（3.7）  |
 | 4    | **JDK7 目标不支持**：内置 arthas 4.3.x 为 JDK8 字节码（major 52 实证），attach 报 UnsupportedClassVersionError；KMBA 本体亦需 JDK8 | JBoss AS 6.1.0 环境                                          |
@@ -661,7 +728,7 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 | 状态                                                         | 类型                                                         |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | ✅ 五步通过（24 类）                                          | filter（含交付 jar 去重复测）、servlet、listener（含交付 jar 消息复测）、valve、upgrade、timer、thread（含 Thread 子类型，交付 jar 复测确认）、executor、springMvcController、springMvcInterceptor、springFluxHandlerMethod、springFluxWebFilter、springFluxNettyHandler、springFluxHandlerFunction、jettyFilter、jettyServlet、jettyListener、weblogicFilter、weblogicServlet、weblogicListener、**struts2Action**、**socket**、**proxyValve（first/basic 槽位形状）**、**agent（transformer 型，5/6 样本全链通过；transformer 型路径 2026-08-31 交付 jar 复跑 6 轮 + 冒烟确认，v4 复测 4 环境五步全过无回归，3.3.10）** |
-| ⚠️ 检出盲区（v4 处置链已删除：诚实拒绝、无处置能力；/agent/restore 假 success） | **agent（redefine 型）**——检出不可见（见 3.3.5 与第四节边界 1）；迭代史：v1 dump 回灌假 success（3.3.7）→ v2 CodeSource 主路径在样本⑥真实容器（8u151）CLI+Web 五步终验通过，8u432 上主路径被 JDK API 兼容性打断（#31）、Web 通道经不可靠 dump 回退假 success（3.3.8）→ v3（称修复 #31）复测证实未修复，8u432 双通道假 success（3.3.9）→ **v4 开发者删除处置链：卸载如实报失败、内存马存活，8u151 能力消失；新增 /agent/restore（dump-only）报 success 不生效（3.3.10）** |
+| ⚠️ 检出盲区（检出维持不可见；v0.8 处置经强杀通道闭环） | **agent（redefine 型）**——检出不可见（见 3.3.5 与第四节边界 1）；迭代史：v1 dump 回灌假 success（3.3.7）→ v2 CodeSource 主路径在样本⑥真实容器（8u151）CLI+Web 五步终验通过，8u432 上主路径被 JDK API 兼容性打断（#31）、Web 通道经不可靠 dump 回退假 success（3.3.8）→ v3（称修复 #31）复测证实未修复，8u432 双通道假 success（3.3.9）→ **v4 开发者删除处置链：卸载如实报失败、内存马存活，8u151 能力消失；新增 /agent/restore（dump-only）报 success 不生效（3.3.10）**；**v0.8 处置链重建（sc -d → 磁盘原始字节 → redefine 回灌）+ `-u agent all`/Web「Agent类强杀」：五步实测强杀闭环（8u432 redefine 马死亡），#32 假 success 消除；检出不可见维持（3.3.11）** |
 | ⏸ 范围外                                                     | tongWeb（按测试范围约定不测）                                |
 
 ---
@@ -683,7 +750,7 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 
 ## 七、遗留与建议（面向 KMBA 后续版本）
 
-1. **Agent redefine 型处置（#9，v4 已整体删除该能力）**：处置链迭代止于 v4 功能删除——v2 已验证的"CodeSource jar 原始字节回灌"方向在 8u151 双通道真实有效（提取物 md5 与磁盘原始逐字节一致），v4 将其删除后 redefine 型全环境无处置（诚实拒绝）。若后续恢复该能力，三点教训仍成立——① **#31**：OGNL 提取模板 `@sun.misc.IOUtils@readFully(is,-1,true)` 的 -1 哨兵被 8u432 类 JDK 拒绝（`length cannot be negative: -1`），应改 `#je.getSize()` 固定长度或逐块循环读取；② **dump 回退字节来源会话相关**（跨轮四点实证：v2 轮 CLI=基线 / Web=被改写；v3 轮 CLI=Web=被改写——任一通道均不可预测），依赖回退即引入"回灌 no-op 仍报 success"风险；③ **回灌后必须加验证步骤**（重取运行态字节与提取文件比对，不一致时报 unverified 而非 success）。**v4 的 /agent/restore（#32）应优先处理**：dump-only 路径对 redefine 污染报 success（8u432 清态与 8u151 双环境实锤），至少应改报 "dumped, unverified"（不声称 restore）或补齐真实还原逻辑后再用该命名，并补 CLI 命令（当前 web-only）。历史参考：v2 曾做 Windows 路径加固（`file:` URL URI 化、OGNL 反斜杠转义、`extracted=` 懒惰匹配，重建 jar `5075606d…`）——恢复处置链时该加固需一并恢复；检出侧经评估暂不加 dump-vs-jar 比对信号（维持 3.3.7 决策）；"jad 手工确认"不可靠（jad 字节来源与 JVM 版本强相关且可与运行时行为不一致，3.3.8）。
+1. **Agent redefine 型处置（#9，v0.8 已重建）**：处置链历经 v1 dump 假 success（3.3.7）→ v2 CodeSource 真回灌 8u151 闭环、8u432 #31 中断（3.3.8）→ v3 未修复（3.3.9）→ v4 整体删除（3.3.10）→ **v0.8 重建为"sc -d 确认存在 → KMBA 本进程读宿主磁盘 jar 原始字节 → 落盘临时目录 → arthas redefine 回灌"，并新增全清单强杀通道（CLI `-u agent all` / Web「Agent类强杀」）**，8u432 双马五步实测强杀闭环（3.3.11）。三点教训的处置状态：① **#31**（OGNL 提取模板 `readFully(-1)` 被 8u432 类 JDK 拒绝）——v0.8 路线不经 OGNL，该问题整体退出触达面；② **dump 回退字节来源会话相关**（跨轮四点实证，3.3.8）——v0.8 已无 dump 回退通道，不再触达；③ **回灌后验证步骤**（重取运行态字节与提取文件比对，不一致时报 unverified 而非 success）——**仍开放**，建议在 v0.8 链路 redefine 之后追加。遗留关注：**检出侧盲区维持**（transformer 枚举原理性，redefine 马可靠 `-l all` 的 InstrumentationImpl 计数间接感知）；**agent shutdown 副作用**——kill agent 进程后宿主类字节可能回退为运行态污染字节（8u151 观察），处置完成后不要重启 agent 进程（v0.8 新记录）。历史参考：v2 曾做 Windows 路径加固（`file:` URL URI 化、OGNL 反斜杠转义、`extracted=` 懒惰匹配，重建 jar `5075606d…`）——v0.8 重建链已等效覆盖路径处理（URL 化 + %20 解码 + Spring Boot 嵌套 jar 支持）；检出侧经评估暂不加 dump-vs-jar 比对信号（维持 3.3.7 决策）；"jad 手工确认"不可靠（jad 字节来源与 JVM 版本强相关且可与运行时行为不一致，3.3.8）。
 2. **Agent unload 顺序漂移（#10）**：逐命令独立枚举 `instances[i]` 的模型在单次 unload 调用内部即可漂移（实测：unload 循环内 `instances[3]` 报 removed、随后的 list 在 `instances[6]` 才探到该条目），产生"列表残留需二次卸载"；跨调用漂移产生"not-found 但 list 可检出、shell 存活"。建议循环内重新查询实例计数、或按对象标识定位后逐对象操作；"已卸载但列表残留"与"未找到"两种语义应可区分。
 3. **proxyValve 枚举面**：建议将枚举范围从"first/basic 两槽位"扩展为完整 valve 链（`getValves()`），并覆盖 engine/host 管线；处理器类名解析逻辑可复用现有实现。
 4. **卸载消息一致性**：listener 消息已修复（success / not found 如实）；仍并存的不一致语义：valve 对不存在目标报 success、struts2Action 失败报 "OGNL execute failed"、listener >10 副本时"删 10 余 N"不披露剩余数——应统一为如实的 "not found" / "removed N instances (M remaining)" 风格；**v4 新增 agent 失败消息漂移（#34）**：同 JVM 同目标 CLI 报 "OGNL execute failed"、Web 报 "className not found"，干净 JVM 上对无马宿主类 unload 在 v4 报 OGNL execute failed 而 v3 报 not found（OGNL 失败根因为 arthas 侧 `ArrayIndexOutOfBoundsException`）——"没找到"与"执行失败"不可区分，建议失败原因排序固定（not found 优先）且双通道一致。
@@ -691,14 +758,14 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 6. **Web 模式可靠性（#23）**：WS 会话断开后所有组件端点静默返回 `[]`（HTTP 200），与"未 connect"不可区分——建议 wrapper 检测 `WebsocketNotConnectedException` 并自动重连，重连失败时显式返回错误而非空列表。
 7. **Web 模式易用性**：未 connect 时 `/agent/list` 返回 `[]` 建议改为显式提示"请先 connect"；`-l agent` 的 arthas 自噪音条目建议内置白名单标记。
 8. **CLI 退出码**：失败场景 exit code 恒为 0（交付 jar 复测维持），建议失败时返回非零码（脚本化使用无法感知失败）。
-9. **版本标识**：交付 jar 的 CLI banner 显示 "KMBA v0.6"，与交付版本号 v0.7 不一致，建议同步。
+9. **版本标识**：交付 jar 的 CLI banner 显示 "KMBA v0.6"，与交付版本号 v0.7 不一致，建议同步。**v0.8 起已同步：banner 随 `Logo.VERSION` 交付更新（0.8）**。
 10. **vmtool bootstrap 边界与错误结构（#33）**：classloader hash=null（bootstrap 加载类）双通道不可用；Web 端把错误文本包进 `{"type":"single","classLoaderHash":"null","data":"Can not find classloader with hashCode: null."}`，程序化消费无法识别失败——建议错误走独立 type（与 404 一致化），并在 CLI/Web 显式声明"bootstrap 加载类不支持"；CLI `-vmtool` 错误场景 exit code 恒 0（#21 同族）。
 
 ---
 
-## 八、问题清单（累计，按 v0.7 现状）
+## 八、问题清单（累计，按 v0.8 现状）
 
-### 已修复（修复效果在 v0.7 最终产物上实测确认）
+### 已修复（修复效果在对应交付 jar 上实测确认）
 
 | #    | 问题                                                         | 修复与复验证据                                               |
 | ---- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -714,18 +781,19 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 | 14   | listener 卸载消息误报：实际卸载成功但报 "[!] Listener is empty"（round3 中间版曾修复，一度回归） | **v0.7 交付 jar 实测修复**：消息优先级重写（doneCnt>0 → success → OGNL failed → empty → not found）+ listContains 预检 + 单 context 最多 10 次删除循环；3 副本一次 unload → `[+] unload success`、负样本 → `[!] Listener not found`，CLI+Web 双通道（3.7/3.8，测试日志 §2） |
 | 18   | socket 枚举首条目输出含集合 toString 乱码（`EMPTY]@ArrayList[@String[...`） | **v0.7 交付 jar 实测修复**：Socket.java list 正则重写 + unload 复查；CLI `-l socket` 首条目 `"/kmbaws  KmbaWs"` 输出干净、Web `/socket/list` 同样无乱码（3.8，测试日志 §4） |
 | 22   | filter 枚举同条目重复（多 context 层级重复遍历），同一 filter 多 context 场景重复列出 | **v0.7 交付 jar 实测修复**：JSONArray.contains 去重；双 context 同名 filter 仅列 1 条，一次 unload 清除两个 context（双侧 FILTER-UID 归零、业务页面双侧 200），合法过滤器条目保留供甄别（3.8，测试日志 §5） |
+| 32   | /agent/restore 假 success：restore 实现为 dump-only（无 redefine），对 redefine 污染把被改写字节落盘后报 "success"，内存马不受影响；web-only、命名（restore）与语义（dump 落盘）不符 | **v0.8（`01501f79…`）实测修复**：restore 重构为真实回灌（sc -d 确认存在 → KMBA 本进程读宿主磁盘原始字节 → 落盘临时目录 → arthas redefine），新增 CLI `-u agent all`（全清单强杀）与 Web「Agent类强杀」按钮（`/agent/restore`）；8u432 双马装置实测：redefine 马 restore success 16.6s 后 `?cmd=id` 无回显、探针 +0、Web 恢复欢迎页；失败场景如实报 "bytecode restore failed"（3.3.11） |
 
-### 已失效（v4 功能删除——代码路径移除，非修复）
+### 已失效（v4 功能删除——代码路径移除，非修复；v0.8 重建路线不经 OGNL，该路线彻底退出）
 
 | #    | 原级别 | 问题                                                         | 失效说明                                                     |
 | ---- | ------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| 31   | P0     | **v2/v3 回灌主路径对 8u432 类 JDK 构建不可用（2026-08-31 发现）**：OGNL 模板 `@sun.misc.IOUtils@readFully(#is,-1,true)` 的 -1 读全部哨兵被该 JDK 构建的 `sun.misc.IOUtils.readFully` 拒绝（`java.io.IOException: length cannot be negative: -1`），CodeSource 提取恒失败 → 恒落 dump 回退；回退字节来源会话相关，形成"回灌 no-op 仍报 success"。**v3（`a25cc5bf…`）交付称已修复，复测证实提取模板逐字节未变、缺陷仍在** | **v4 将承载该模板的 `AgentUtils` 类整体删除**，CodeSource 主路径不复存在，缺陷随之不可触达——属功能删除而非修复（代价是 8u151 上真实可用的处置能力一并消失，见 #9）；其核心教训（回灌字节必须验证、dump 回退不可依赖）已转入 #32（/agent/restore 假 success）。取证存档：web 日志 OGNL 失败原文（v2/v3 两轮复现）、dump md5 对照（`d0a5140a…` 基线 / `2b7731e2…` 被改写）、javap 模板逐字节比对（3.3.8 / 3.3.9，测试日志 §2/§3） |
+| 31   | P0     | **v2/v3 回灌主路径对 8u432 类 JDK 构建不可用（2026-08-31 发现）**：OGNL 模板 `@sun.misc.IOUtils@readFully(#is,-1,true)` 的 -1 读全部哨兵被该 JDK 构建的 `sun.misc.IOUtils.readFully` 拒绝（`java.io.IOException: length cannot be negative: -1`），CodeSource 提取恒失败 → 恒落 dump 回退；回退字节来源会话相关，形成"回灌 no-op 仍报 success"。**v3（`a25cc5bf…`）交付称已修复，复测证实提取模板逐字节未变、缺陷仍在** | **v4 将承载该模板的 `AgentUtils` 类整体删除**，CodeSource 主路径不复存在，缺陷随之不可触达——属功能删除而非修复（代价是 8u151 上真实可用的处置能力一并消失，见 #9）；其核心教训（回灌字节必须验证、dump 回退不可依赖）已转入 #32（/agent/restore 假 success）。取证存档：web 日志 OGNL 失败原文（v2/v3 两轮复现）、dump md5 对照（`d0a5140a…` 基线 / `2b7731e2…` 被改写）、javap 模板逐字节比对（3.3.8 / 3.3.9，测试日志 §2/§3）；**v0.8 重建路线不经 OGNL（sc -d → 磁盘原始字节 → redefine），该模板问题彻底退出**（3.3.11） |
 
 ### 存留（有复现依据，待修）
 
 | #    | 级别                                    | 问题                                                         | 依据摘录                                                     |
 | ---- | --------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| 9    | **P0（v4 状态：处置链删除，能力清零）** | Agent redefine 型内存马（仅 `redefineClasses`、不注册 transformer）检出不可见（transformer 枚举原理性盲区）；处置路径迭代：v1 报 success 不生效（unload 时刻 `dump` 取到被改写字节）→ v2 CodeSource 主路径在 8u151 双通道闭环、**8u432 双通道假 success**（主路径 #31 失败 → dump 回退字节来源会话相关；v3 称修复 #31，复测证实未修复）→ **v4（`d22aad21…`）开发者删除 redefine 处置链（`AgentUtils` 整类移除）：CLI/Web 卸载如实报失败、内存马存活，v2/v3 在 8u151 上真实可用的回灌能力一并消失——redefine 型全环境无处置（诚实拒绝），检出侧维持沉默** | 3.3.5 样本⑥五步走完内存马存活；3.3.7 v1 复测：探针 8→14 / 16→22，dump md5 `5435656e…`（8431 B 含探针）vs 磁盘原始 `1d914752…`（7863 B）；3.3.8 v2 复测：8u151 CLI（提取物 md5 `57a661e0…` == jar 解包原始）+ Web（日志 `extracted= → redefine success` 全链）探针均死亡；8u432 Web 探针 4→6→8 假 success；3.3.9 v3 复测：8u432 CLI 探针 2→4→6、Web 探针 8→10→12 假 success（dump md5 均 `2b7731e2…` 含探针字节）；3.3.10 v4 复测：8u432 探针 2→4→6（CLI/Web 均诚实报失败）、8u151 样本⑥ huahua 存活（Web `className not found` / CLI `[!] unload failed: OGNL execute failed`）、`kmba_orig_*` 零产物 |
+| 9    | **P0（检出盲区维持；v0.8 处置通道已恢复）** | Agent redefine 型内存马（仅 `redefineClasses`、不注册 transformer）检出不可见（transformer 枚举原理性盲区）；处置路径迭代：v1 报 success 不生效（unload 时刻 `dump` 取到被改写字节）→ v2 CodeSource 主路径在 8u151 双通道闭环、**8u432 双通道假 success**（主路径 #31 失败 → dump 回退字节来源会话相关；v3 称修复 #31，复测证实未修复）→ **v4（`d22aad21…`）开发者删除 redefine 处置链（`AgentUtils` 整类移除）：CLI/Web 卸载如实报失败、内存马存活，v2/v3 在 8u151 上真实可用的回灌能力一并消失——redefine 型全环境无处置（诚实拒绝），检出侧维持沉默** → **v0.8（`01501f79…`）处置链重建（sc -d → 磁盘原始字节 → redefine 回灌，不经 OGNL/dump）+ 强杀通道（`-u agent all`/Web「Agent类强杀」）落地，8u432 双马实测强杀闭环（3.3.11）** | 3.3.5 样本⑥五步走完内存马存活；3.3.7 v1 复测：探针 8→14 / 16→22，dump md5 `5435656e…`（8431 B 含探针）vs 磁盘原始 `1d914752…`（7863 B）；3.3.8 v2 复测：8u151 CLI（提取物 md5 `57a661e0…` == jar 解包原始）+ Web（日志 `extracted= → redefine success` 全链）探针均死亡；8u432 Web 探针 4→6→8 假 success；3.3.9 v3 复测：8u432 CLI 探针 2→4→6、Web 探针 8→10→12 假 success（dump md5 均 `2b7731e2…` 含探针字节）；3.3.10 v4 复测：8u432 探针 2→4→6（CLI/Web 均诚实报失败）、8u151 样本⑥ huahua 存活（Web `className not found` / CLI `[!] unload failed: OGNL execute failed`）、`kmba_orig_*` 零产物；3.3.11 v0.8 复测：8u432 双马装置 restore 强杀五步闭环（success 16.6s → 命令失效、探针 +0）、HttpServlet 5 块子类过滤实战样本、`-l all` 全量 47.7s（修复带入） |
 | 10   | **P1**                                  | Web `/agent/unload` 实例顺序漂移，**双面孔**：① `className not found` 但 list 可检出、shell 存活（失败窗口）；② 单次 unload 报 success、钩子已死亡，但列表残留 1 条 transformer 条目需二次卸载。根因同一：逐命令独立枚举 `instances[i]`，漂移可发生在**同一次卸载调用的多条命令之间** | 面孔① 3.3.3/3.3.4：JDK17 与 JRE8 双重复现，逐 index 诊断脚本举证；面孔② 2026-08-31 交付 jar 复测 5/5 复现，web 日志地面真值——unload 循环内 `instances[3]` 返回 removed、随后 `/agent/list` 在 `instances[6]` 才探到该条目；v3 复测（T2r）1/1 复现；**v4 复测 CLI 与 Web 双通道 1/1 复现，且二次卸载消息两通道不一致**（CLI `[!] unload failed: OGNL execute failed` / Web success 清零）（3.3.6、3.8、3.3.9、3.3.10，测试日志 §6/§3/§2/§4） |
 | 11   | **P1**                                  | proxyValve 枚举面覆盖不全：engine/host 管线代理完全不可见（两 valve 组件均不遍历非 context 管线）、context 管线中间槽位代理对 proxyValve 不可见；engine/host 级代理无任何可达清除路径 | 3.7：三级管线 3 条活体代理 0/3 检出（engine/host 级对全站请求生效），交付 jar 复测维持；反编译归因一致 |
 | 13   | P1                                      | JDK7 目标不支持（内置 arthas 4.3.x 为 JDK8 字节码 major 52，attach 报 UnsupportedClassVersionError） | JBoss AS 6.1.0 环境记录                                      |
@@ -736,9 +804,8 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 | 20   | P2                                      | Web jad 同名类多 classloader 无法消歧（`Found more than one class ... Please use jad -c <hashcode>`，Web 端传 hashcode 无效；CLI 正常逐一枚举） | Shiro/Solr 两处复现                                          |
 | 21   | P2                                      | CLI 失败场景 exit code 恒为 0（脚本化使用无法感知失败）      | 各失败场景实测；交付 jar 复测维持（3.8）                     |
 | 23   | P2                                      | **Web WS 会话静默失效（2026-08-31 新发现）**：会话断开（`org.java_websocket.exceptions.WebsocketNotConnectedException`，ArthasWsWrapper.runCmd:79）后**无自动重连、无错误提示**，所有组件端点静默返回 `[]`（HTTP 200）——与"未 connect"状态不可区分，"没有马"与"会话已死"无从甄别 | 交付 jar 实测：web 日志异常栈 + `Util.getListResult: []`；本轮首批 5 轮 Agent 试验即因此整体作废重做；重连 `/arthas/connect?pid=N` 后恢复（3.8，测试日志 §8） |
-| 32   | **P0（2026-09-01 新发现，v4 引入）**    | **`/agent/restore` 假 success**：restore 实现为 dump-only（`restoreBytecode` 仅执行 `dump <类>`，无 redefine），dump 取到的是当前运行态字节——对 redefine 污染必然把被改写字节落盘后报 "success"，内存马不受影响；且 web-only（无 CLI 命令，`cli -restore` 打印 usage）、命名（restore）与语义（dump 落盘）不符 | 3.3.10（C）：8u432 清态对照轮（容器重启清态 → 首次 restore → 探针 10→12→14 存活，dump 8431 B md5 `2b7731e2…`、`__probe__`×1 == v2/v3 三处历史污染 dump）；8u151 样本⑥宿主类 restore → success → huahua 仍回显 uid；对照：卸载历史会话中 restore 后探针死亡（dump `6430d8b2…` 7863 B 干净）——会话效应的偶然，不可依赖 |
 | 33   | P2（2026-09-01 新发现，v4 引入）        | vmtool 对 bootstrap 加载类（classloader hash=null）双通道不可用，且 Web 端把错误文本包进 `{"type":"single","classLoaderHash":"null","data":"Can not find classloader with hashCode: null."}`——type=single 包裹错误文本，程序化消费无法识别失败；CLI `-vmtool` 错误场景 exit code 恒 0（#21 同族） | 3.3.10（D）：CLI `java.lang.String` → `Can not find classloader with hashCode: null.`；Web `sun.instrument.InstrumentationImpl` → type=single 包裹错误文本；多实例消歧（`javax.servlet.Servlet` 9 实例）/ 单实例 / 负例（`type:404`）均正常 |
-| 34   | P2（2026-09-01 新观察）                 | agent 失败消息语义漂移：同 JVM 同目标，CLI 报 `[!] unload failed: OGNL execute failed` 而 Web 报 `className not found`（8u151 样本⑥）；干净 JVM 上对无马宿主类 unload，v3 报 `[!] className not found`（诚实）而 v4 报 `[!] unload failed: OGNL execute failed`（OGNL 失败根因为 arthas 侧 `java.lang.ArrayIndexOutOfBoundsException`）——失败原因排序随会话状态/通道变化，"没找到"与"执行失败"不可区分 | 3.3.10（B）：T2/T2r2/T6/T6web 消息对照；web 日志 OGNL AIOOBE 取证（测试日志 §2/§3/§7） |
+| 34   | P2（2026-09-01 新观察）                 | agent 失败消息语义漂移：同 JVM 同目标，CLI 报 `[!] unload failed: OGNL execute failed` 而 Web 报 `className not found`（8u151 样本⑥）；干净 JVM 上对无马宿主类 unload，v3 报 `[!] className not found`（诚实）而 v4 报 `[!] unload failed: OGNL execute failed`（OGNL 失败根因为 arthas 侧 `java.lang.ArrayIndexOutOfBoundsException`）——失败原因排序随会话状态/通道变化，"没找到"与"执行失败"不可区分 | 3.3.10（B）：T2/T2r2/T6/T6web 消息对照；web 日志 OGNL AIOOBE 取证（测试日志 §2/§3/§7）；**v0.8 注**：restore 失败文案中性化（"bytecode restore failed"）+ CLI 提示补处置口径已带入（3.3.11）；漂移本身维持 |
 
 ### 观察项（行为差异记录，非缺陷）
 
@@ -750,7 +817,7 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 | 27   | Web 模式不自动 attach：未 connect 时 `/agent/list` 返回 `[]`（200），易误判"未检出"；`-l agent` 存在 arthas 自噪音条目（TransformerManager$1/$2）；叠加 #23 后空列表有三种可能含义（未检出 / 未 connect / 会话已死） |
 | 28   | Agent 检出列表条目数随 attach 次数波动（每次 arthas connect/外部 loadAgent 使 InstrumentationImpl 实例 +1，实测 7→8），加剧 #10 的漂移概率 |
 | 29   | executor 类型特性：命令执行受 execute()-time currentProcessor 未绑定限制（公开 su18/JYso 模板同为替换型占位）；KMBA executor 组件 list/unload/恢复原始三能力验证全通过 |
-| 30   | 交付 jar 的 CLI banner 实测显示 "KMBA v0.6"，与交付版本号 v0.7 不一致（版本字符串未随交付更新；2026-08-31 前两轮交付 jar CLI 实测观察，本轮未复验） |
+| 30   | 交付 jar 的 CLI banner 实测显示 "KMBA v0.6"，与交付版本号 v0.7 不一致（版本字符串未随交付更新；2026-08-31 前两轮交付 jar CLI 实测观察，本轮未复验）。**v0.8 起已同步：`Logo.VERSION` 随交付更新为 0.8，banner 与版本号一致** |
 
 ### 测试过程记录（非 KMBA 问题）
 
@@ -776,6 +843,8 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 - **v2 jar 复测（2026-08-31）**: `logs/agent-0831-v2-verify.md`——redefine 回灌修复 v2（`e4d7cb1f…`）双环境双通道实测全记录：8u151 主路径提取物 md5 逐字节一致 + Web 日志全链（五步双通道通过）、8u432 `readFully(-1)` OGNL 失败取证与 dump 回退字节会话相关对照（CLI 基线 `d0a5140a…` / Web 被改写 `2b7731e2…`）、#31 新发现、T1 无效轮次（探针未武装）与装置教训、清理复验
 - **v3 jar 复测（2026-08-31）**: `logs/agent-0831-v3-verify.md`——第三交付 v3（`a25cc5bf…`，称修复 #31）实测全记录：静态核验（提取模板与 v2 逐字节未变、restore() 新增、unloadAgentByVmtool 去 `-l -1`）、8u432 CLI/Web 双通道假 success 取证（探针计数 + dump md5 `2b7731e2…` + web 日志同异常）、8u151 双通道主路径回归通过（提取物 md5 == 原始 + 日志全链）、T2r transformer 模板变更回归与 #10 残留 1/1、装置教训与清理复验
 - **v4 jar 复测（2026-09-01）**: `logs/agent-0901-v4-verify.md`——第四交付 v4（`d22aad21…`，开发者删除 redefine 处置链）实测全记录：静态核验（AgentUtils 整类删除、/agent/restore dump-only 且 web-only、VmtoolUtils / -vmtool 新增、dumpTargetClasses 29 类）、transformer 型 4 环境五步全过（①③④⑤）、redefine 探针双通道诚实拒绝（假 success 消除）+ /agent/restore 清态/历史会话对照（假 success 实锤：dump `2b7731e2…` 污染 vs `6430d8b2…` 干净）、8u151 样本⑥双通道诚实拒绝 + restore 假 success、#10 残留 1/1×2 通道、vmtool 双通道与 bootstrap 边界、#32/#33/#34 新发现、装置教训与清理复验
+- **v0.8 处置链重建实测（2026-10-13）**: `logs/agent-1013-codesource-redefine-restore.md`——redefine 处置链重建（sc -d 确认存在 → 磁盘原始字节 → redefine 回灌）调试全记录：sc -d 子类污染分块过滤（HttpServlet 5 块）、code-source 提取与嵌套 jar 路径处理、临时目录落盘与回灌验证
+- **v0.8 双马五步终验（2026-10-13）**: `logs/agent-1013-agentcrack-redefine-memshell.md`——8u432 双马装置（transformer 马 MSP + agentcrack 式 redefine 马）五步法全记录：transformer 马 unload 23.6s 五步全过、redefine 马 restore 强杀 16.6s 后命令失效（探针 +0）、`-l all` 全量 47.7s、探针计数口径坑与 attach→list 竞态复盘（§5）、环境还原
 - 非 Agent 环境: `logs/env-01-shiro.md` ~ `logs/env-09-javarce-spring.md`、`logs/fix-env-*.md`（缺陷修复复验）、`logs/FIX-VERIFY-REPORT.md`（PASS=45 FAIL=0）、`logs/MASTER-TEST-LOG.md`
 - round3 扩展环境与类型矩阵: `logs/round3/env-01-struts2.md` ~ `logs/round3/env-14-coexist-gateway.md`、`logs/round3/TOOLS-AND-ENVS-MATRIX.md`、`logs/round3/MEMSHELL-ID-INVENTORY.md`
 - 工具核查: `logs/tool-survey-SUMMARY.md`（25 个公开工具核查，9 个含内存马模块、16 个阴性对照）
@@ -789,6 +858,7 @@ round3 曾记录"Struts2 Action 内存马无检测组件"（Action 马注册于 
 | Weblogic404Memshell jar（本地构建，797,103 B）               | `poc/agent/weblogic404-memshell.jar`                         |
 | redefine 型修复复验探针源码（模拟样本⑥"仅 redefineClasses 不注册 transformer"机制：RedefineMaker javassist 插桩 / RedefineAgent2 基准字节观测 / RedefineAgent4 redefine-only agentmain）及其 v2 复测五步法脚本（t1b/t2/wl/wlweb 等，2026-08-31） | `poc/agent/redefine-probe/`、`poc/agent/redefine-probe/v2-verify/` |
 | redefine 探针 v4 复测五步法脚本（setup / build-probe / t1 / t2 / t2web / t3 / t4 / t5 / t6 / t6web 等，2026-09-01） | `poc/agent/redefine-probe/v4-verify/`                        |
+| redefine 型 v0.8 注入装置源码（RedefineMakerCmd.java：-agent redeliver 前置注入，替代 v2/v3 OGNL 注入面） | KMBA0 开发树 `kmbatest/poc/`                                 |
 | MSP 样本 jar（agent-tomcat9 94,226 B / agent-t10 94,242 B / agent-solr 94,400 B） | 测试服务器 `/tmp/`（生成参数见各日志）                       |
 | 修复延续性复验自写马源码（KmbaLsn2 / KmbaPassValve / KmbaVHandler2 / KmbaWs 等） | `logs/agent-tc24813-fix-continuity.md` 附录                  |
 

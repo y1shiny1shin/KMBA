@@ -2,6 +2,7 @@ package com.kmba.arthas;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.kmba.Utils.Dict;
 import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 import org.slf4j.Logger;
@@ -10,7 +11,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,9 +41,10 @@ import java.util.regex.Pattern;
  *
  * 卸载（不依赖马内部任何字段名，最稳定）：
  *   1. removeTransformer（双 manager 按类名匹配移除，马失活）
- *   2. dump 容器类全量（org.* / com.* / javax.*，逐类独立 retransform）
- *      —— JVM 缓存类加载时的原始字节，retransform 自动还原被改字节；
- *        逐类容错（单类失败跳过），规避 retransformClasses 批量调用时
+ *   2. 还原目标类清单（org.* / com.* / javax.*）：sc -d 确认类存在 → 取
+ *      code-source（宿主 jar 磁盘路径）→ 读磁盘原始字节落盘 → redefine 回灌。
+ *      磁盘 jar 里的字节即该类加载时的原始字节，版本必然匹配；逐类容错
+ *      （单类失败跳过），规避 redefineClasses 批量调用时
  *        UnmodifiableClassException / VerifyError / JDK 核心类崩溃（实测
  *        全量 retransformClasses 曾致 JVM 崩溃）。
  *
@@ -54,7 +65,9 @@ public class Agent {
     private String listAgentByVmtool = "vmtool -l -1 --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[%1$s],#tm1=#ins.mTransformerManager,#tm2=#ins.mRetransfomableTransformerManager,#r1=#tm1==null?new java.util.ArrayList():@java.util.Arrays@asList(#tm1.mTransformerList).{(#this.mTransformer.getClass().getName())},#r2=#tm2==null?new java.util.ArrayList():@java.util.Arrays@asList(#tm2.mTransformerList).{(#this.mTransformer.getClass().getName())},\"normal:\"+#r1+\"|retransformable:\"+#r2'";
 
     // unload 移除输出: removed / not-found（#c>0 表示命中）
-    private String unloadAgentByVmtool = "vmtool --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[%s],#tm1=#ins.mTransformerManager,#tm2=#ins.mRetransfomableTransformerManager,#lst1=#tm1==null?new java.util.ArrayList():@java.util.Arrays@asList(#tm1.mTransformerList),#lst2=#tm2==null?new java.util.ArrayList():@java.util.Arrays@asList(#tm2.mTransformerList),#m1=#lst1.{? #this.mTransformer.getClass().getName().equals(\"%s\")},#m2=#lst2.{? #this.mTransformer.getClass().getName().equals(\"%s\")},#c=#m1.size()+#m2.size(),#c>0&&(#m1.size()>0&&(#ins.removeTransformer(#m1[0].mTransformer)),#m2.size()>0&&(#ins.removeTransformer(#m2[0].mTransformer))),#c>0?\"removed\":\"not-found\"'";
+    // 必须与计数命令同带 -l -1：vmtool 默认 limit 10，实例数>10 时 instances[10+] 越界
+    // （AIOOBE → unload failed），且马注册在后段实例上时恒 not-found
+    private String unloadAgentByVmtool = "vmtool -l -1 --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[%s],#tm1=#ins.mTransformerManager,#tm2=#ins.mRetransfomableTransformerManager,#lst1=#tm1==null?new java.util.ArrayList():@java.util.Arrays@asList(#tm1.mTransformerList),#lst2=#tm2==null?new java.util.ArrayList():@java.util.Arrays@asList(#tm2.mTransformerList),#m1=#lst1.{? #this.mTransformer.getClass().getName().equals(\"%s\")},#m2=#lst2.{? #this.mTransformer.getClass().getName().equals(\"%s\")},#c=#m1.size()+#m2.size(),#c>0&&(#m1.size()>0&&(#ins.removeTransformer(#m1[0].mTransformer)),#m2.size()>0&&(#ins.removeTransformer(#m2[0].mTransformer))),#c>0?\"removed\":\"not-found\"'";
 
     // JDK 9+ 版（Unsafe 绕模块）: sun.instrument 私有字段反射被模块系统拒绝
     // （InaccessibleObjectException），改用 Unsafe.objectFieldOffset/getObject 按偏移读字段；
@@ -62,9 +75,9 @@ public class Agent {
     // （接口 exports 可访问，绕开实现类模块限制）；需先 options strict false（ognl 拦 Unsafe 方法）
     private String listAgentByVmtoolJdk9 = "vmtool -l -1 --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[%1$s],#uc=@java.lang.Class@forName(\"sun.misc.Unsafe\"),#uf=#uc.getDeclaredField(\"theUnsafe\"),#uf.setAccessible(true),#u=#uf.get(null),#f1=#ins.getClass().getDeclaredField(\"mTransformerManager\"),#tm1=#u.getObject(#ins,#u.objectFieldOffset(#f1)),#f2=#ins.getClass().getDeclaredField(\"mRetransfomableTransformerManager\"),#tm2=#u.getObject(#ins,#u.objectFieldOffset(#f2)),#r1=#tm1==null?new java.util.ArrayList():@java.util.Arrays@asList(#u.getObject(#tm1,#u.objectFieldOffset(#tm1.getClass().getDeclaredField(\"mTransformerList\")))).{(#t=#this,#tf=#t.getClass().getDeclaredField(\"mTransformer\"),#u.getObject(#t,#u.objectFieldOffset(#tf)).getClass().getName())},#r2=#tm2==null?new java.util.ArrayList():@java.util.Arrays@asList(#u.getObject(#tm2,#u.objectFieldOffset(#tm2.getClass().getDeclaredField(\"mTransformerList\")))).{(#t=#this,#tf=#t.getClass().getDeclaredField(\"mTransformer\"),#u.getObject(#t,#u.objectFieldOffset(#tf)).getClass().getName())},\"normal:\"+#r1+\"|retransformable:\"+#r2'";
 
-    private String unloadAgentByVmtoolJdk9 = "vmtool --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[%s],#uc=@java.lang.Class@forName(\"sun.misc.Unsafe\"),#uf=#uc.getDeclaredField(\"theUnsafe\"),#uf.setAccessible(true),#u=#uf.get(null),#f1=#ins.getClass().getDeclaredField(\"mTransformerManager\"),#tm1=#u.getObject(#ins,#u.objectFieldOffset(#f1)),#f2=#ins.getClass().getDeclaredField(\"mRetransfomableTransformerManager\"),#tm2=#u.getObject(#ins,#u.objectFieldOffset(#f2)),#lst1=#tm1==null?new java.util.ArrayList():@java.util.Arrays@asList(#u.getObject(#tm1,#u.objectFieldOffset(#tm1.getClass().getDeclaredField(\"mTransformerList\")))),#lst2=#tm2==null?new java.util.ArrayList():@java.util.Arrays@asList(#u.getObject(#tm2,#u.objectFieldOffset(#tm2.getClass().getDeclaredField(\"mTransformerList\")))),#m1=#lst1.{? (#t=#this,#u.getObject(#t,#u.objectFieldOffset(#t.getClass().getDeclaredField(\"mTransformer\"))).getClass().getName().equals(\"%s\"))},#m2=#lst2.{? (#t=#this,#u.getObject(#t,#u.objectFieldOffset(#t.getClass().getDeclaredField(\"mTransformer\"))).getClass().getName().equals(\"%s\"))},#c=#m1.size()+#m2.size(),#ic=@java.lang.Class@forName(\"java.lang.instrument.Instrumentation\"),#c>0&&(#m1.size()>0&&(#t2=#u.getObject(#m1[0],#u.objectFieldOffset(#m1[0].getClass().getDeclaredField(\"mTransformer\"))),#rm=#ic.getMethods().{? #this.getName().equals(\"removeTransformer\")}[0],#r1=#rm.invoke(#ins,#t2)),#m2.size()>0&&(#t3=#u.getObject(#m2[0],#u.objectFieldOffset(#m2[0].getClass().getDeclaredField(\"mTransformer\"))),#rm2=#ic.getMethods().{? #this.getName().equals(\"removeTransformer\")}[0],#r2=#rm2.invoke(#ins,#t3))),#c>0?\"removed\":\"not-found\"'";
+    private String unloadAgentByVmtoolJdk9 = "vmtool -l -1 --action getInstances --className sun.instrument.InstrumentationImpl --express '#ins=instances[%s],#uc=@java.lang.Class@forName(\"sun.misc.Unsafe\"),#uf=#uc.getDeclaredField(\"theUnsafe\"),#uf.setAccessible(true),#u=#uf.get(null),#f1=#ins.getClass().getDeclaredField(\"mTransformerManager\"),#tm1=#u.getObject(#ins,#u.objectFieldOffset(#f1)),#f2=#ins.getClass().getDeclaredField(\"mRetransfomableTransformerManager\"),#tm2=#u.getObject(#ins,#u.objectFieldOffset(#f2)),#lst1=#tm1==null?new java.util.ArrayList():@java.util.Arrays@asList(#u.getObject(#tm1,#u.objectFieldOffset(#tm1.getClass().getDeclaredField(\"mTransformerList\")))),#lst2=#tm2==null?new java.util.ArrayList():@java.util.Arrays@asList(#u.getObject(#tm2,#u.objectFieldOffset(#tm2.getClass().getDeclaredField(\"mTransformerList\")))),#m1=#lst1.{? (#t=#this,#u.getObject(#t,#u.objectFieldOffset(#t.getClass().getDeclaredField(\"mTransformer\"))).getClass().getName().equals(\"%s\"))},#m2=#lst2.{? (#t=#this,#u.getObject(#t,#u.objectFieldOffset(#t.getClass().getDeclaredField(\"mTransformer\"))).getClass().getName().equals(\"%s\"))},#c=#m1.size()+#m2.size(),#ic=@java.lang.Class@forName(\"java.lang.instrument.Instrumentation\"),#c>0&&(#m1.size()>0&&(#t2=#u.getObject(#m1[0],#u.objectFieldOffset(#m1[0].getClass().getDeclaredField(\"mTransformer\"))),#rm=#ic.getMethods().{? #this.getName().equals(\"removeTransformer\")}[0],#r1=#rm.invoke(#ins,#t2)),#m2.size()>0&&(#t3=#u.getObject(#m2[0],#u.objectFieldOffset(#m2[0].getClass().getDeclaredField(\"mTransformer\"))),#rm2=#ic.getMethods().{? #this.getName().equals(\"removeTransformer\")}[0],#r2=#rm2.invoke(#ins,#t3))),#c>0?\"removed\":\"not-found\"'";
 
-    // Agent 马常见目标类（dump 逐个还原字节；类不存在时 dump 0 类快速跳过）
+    // Agent 马常见目标类（sc -d 确认存在后读磁盘原始字节回灌；类不存在时如实跳过）
     // 来源覆盖:
     //   工具: MSP 13 个 Agent 注入器（Tomcat/Jetty 6 变体含 ee8-ee11/WebLogic/SpringMVC/
     //     TongWeb 3 变体/Undertow/BES/Apusic/Resin/WebSphere，TARGET_CLASS 逐字提取）、
@@ -132,9 +145,6 @@ public class Agent {
             //   首选宿主类——无 lambda、长度短，Javassist 修改不易出错）
             "org.apache.tomcat.websocket.server.WsFilter",
     };
-
-    // dump 输出目录：不传 -d，用 arthas 默认输出目录（~/logs/arthas/classdump），
-    // 跨平台（Windows 上 /tmp/xxx 不可用且目录检查不过会导致 dump 整体失败、还原失效）
 
     @RequestMapping("/list")
     public JSONArray list() {
@@ -218,11 +228,10 @@ public class Agent {
                 }
             }
             if (removedCnt > 0) {
-                // 移除成功 → dump 目标类清单还原被改字节
-                // JDK 9+ 也走还原：2026-08-30 重测推翻"retransform 卡死"结论——
-                // Tomcat 10.1/JDK17 上 dump 单类 0.5s 完成并成功还原字节（命令失效）；
-                // 此前卡死的是 arthas stop 的 reset（全量增强类还原），非 dump 单类路径。
-                // 实测：JDK9+ 不还原时，advisor 类不随 removeTransformer 卸载 +
+                // 移除成功 → 目标类清单逐类还原被改字节
+                // （sc -d 确认存在 → 读磁盘原始字节 → redefine 回灌，不依赖 retransform 缓存）
+                // JDK 9+ 同样适用：2026-08-30 重测推翻"retransform 卡死"结论；
+                // 实测 JDK9+ 不还原时，advisor 类不随 removeTransformer 卸载 +
                 // 嵌入字节残留 → 后门仍可执行（<4> 失败）；还原后命令失效。
                 if (!restoreBytecode(wrapper)) {
                     return "restore failed";
@@ -268,18 +277,19 @@ public class Agent {
     }
 
     /**
-     * dump Agent 马常见目标类还原被改字节（transformer 已移除时，逐类 retransform
-     * 触发 JVM 用缓存原始字节重变换）。返回 false 表示 dump 命令执行异常。
+     * 还原 Agent 马常见目标类被改字节（transformer 已移除时逐类处理）。不依赖
+     * 马内部任何字段名。马插桩的宿主类通常只有一个，其余类回灌的是与加载时
+     * 一致的磁盘原始字节，等价无副作用（unload 全清单循环实际修复的就是被改
+     * 的那个类）。
+     * 注: 不做全量 dump——WebLogic 类量巨大（LaunchClassLoader 几千类，
+     *     org.* 单次 dump 4 分钟+），全量还原不现实；清单覆盖 MSP/JMG 全部
+     *     Agent 注入器目标类，清单外目标类可手动 jad/redefine 兜底。
+     * 返回 false 表示单类还原流程执行异常（redefine 失败）。
      */
     private boolean restoreBytecode(ArthasWsWrapper wrapper) {
         try {
-            // Agent 马常见目标类逐个 dump（逐类 retransform 触发 JVM 用缓存原始字节还原；
-            // 类不存在时 "No class found" 也视为通过）。不依赖马内部任何字段名。
-            // 注: 不做全量 dump——WebLogic 类量巨大（LaunchClassLoader 几千类，
-            //     org.* 单次 dump 4 分钟+），全量还原不现实；清单覆盖 MSP/JMG 全部
-            //     Agent 注入器目标类，清单外目标类可手动 jad/redefine 兜底
             for (String cls : dumpTargetClasses) {
-                // "No class found"（类不存在）视为通过
+                // "className not found"（类未加载）视为通过
                 if ("restore failed".equals(restoreBytecode(wrapper, cls))) {
                     return false;
                 }
@@ -292,31 +302,190 @@ public class Agent {
     }
 
     /**
-     * dump 单个宿主类还原被改字节（restoreBytecode 清单循环与 restore 按传入
-     * 类名单类还原共用）。返回 "success" / "className not found"（类未加载）/
-     * "restore failed"（dump 命令执行异常）。
+     * 还原单个宿主类被改字节（restoreBytecode 清单循环与 restore 按传入类名
+     * 单类还原共用）。返回 "success" / "className not found"（类未加载）/
+     * "restore failed"（磁盘原始字节取不到或 redefine 执行异常）。
+     *
+     * 流程：sc -d 确认类存在并取 code-source（还原前先确认这个类是否存在）→
+     * KMBA 本进程从磁盘读出该类原始字节 → 落盘临时文件（Dict.TMP_DIR）→
+     * arthas redefine 回灌。不做 dump 比对——retransform 缓存过的字节 dump
+     * 出来与磁盘原始字节存在序列化差异（2026-10-13 实测 7863B 同长 1931 字节
+     * 不同），比对不成立；磁盘 jar 里的字节即该类加载时的原始字节，版本必然
+     * 匹配（目标须与 KMBA 同机）。
      */
     private String restoreBytecode(ArthasWsWrapper wrapper, String className) {
         try {
-            // 不传 -d：用 arthas 默认输出目录，跨平台（Windows 上 /tmp 不可用）
-            String cmd = String.format("dump %s" ,className);
-            List<String> result = wrapper.runCmd(cmd);
-            String resultStr = result == null ? null : String.join("" ,result);
-            logger.info("/agent/unload: {}" ,resultStr);
-            // 显式失败才中断：目录/执行错误、超时返回 null
-            if (resultStr == null || resultStr.contains("is not a directory")
-                    || resultStr.contains("fail to dump") || resultStr.contains("processing error")) {
-                logger.error("/agent/unload: dump {} failed" ,className);
+            // 确认类存在 + 取 code-source（宿主 jar 磁盘路径）
+            List<String> scResult = wrapper.runCmd(String.format("sc -d %s" ,className));
+            String scStr = scResult == null ? null : String.join("" ,scResult);
+            if (scStr == null || !scStr.contains("class-info")) {
+                logger.info("/agent/restore: {} not loaded" ,className);
+                return "className not found";
+            }
+
+            // 读磁盘原始字节（宿主 jar / exploded 目录 / 嵌套 jar）
+            List<byte[]> originals = readOriginalBytes(extractCodeSource(scResult, className), className);
+            if (originals == null || originals.isEmpty()) {
+                logger.error("/agent/restore: {} code-source 字节不可读" ,className);
                 return "restore failed";
             }
-            // "No class found"（类未加载）
-            if (resultStr.contains("No class found")) {
-                return "className not found";
+
+            // 原始字节落盘临时文件 → redefine 回灌
+            String redefinePath = writeTempClass(className, originals.get(0));
+            String redefineStr = String.join("" ,wrapper.runCmd(String.format("redefine %s" ,redefinePath)));
+            logger.info("/agent/restore: redefine {}" ,redefineStr);
+            if (redefineStr.toLowerCase().contains("error")) {
+                logger.error("/agent/restore: redefine {} failed" ,className);
+                return "restore failed";
             }
             return "success";
         } catch (Exception e) {
             logger.error(e.getMessage());
             return "restore failed";
         }
+    }
+
+    /**
+     * 从 sc -d 输出提取 code-source 值（多 classloader 时多份）。同 JAD.hashcode
+     * 的逐行提取模式。sc 默认追加子类匹配，先按 class-info 分块，只保留完整类名
+     * 等于目标名的块，避免取到子类的宿主 jar。
+     */
+    private List<String> extractCodeSource(List<String> lines, String className) {
+        List<String> codeSources = new ArrayList<>();
+        boolean blockMatch = false;
+        for (String line : lines) {
+            if (line == null) { continue; }
+            for (String sub : line.split("\r?\n")) {
+                sub = sub.trim();
+                // class-info 行是每块起点，行值即该块的完整类名
+                if (sub.startsWith("class-info")) {
+                    blockMatch = className.equals(sub.substring("class-info".length()).trim());
+                } else if (blockMatch && sub.startsWith("code-source")) {
+                    String value = sub.substring("code-source".length()).trim();
+                    if (!value.isEmpty() && !"null".equals(value)) {
+                        codeSources.add(value);
+                    }
+                }
+            }
+        }
+        return codeSources;
+    }
+
+    /**
+     * 从 code-source 读宿主类磁盘原始字节（KMBA 本进程读文件，目标须与 KMBA
+     * 同机）。多 classloader 多个 jar 各读一份。
+     */
+    private List<byte[]> readOriginalBytes(List<String> codeSources, String className) {
+        if (codeSources == null || codeSources.isEmpty()) {
+            return null;
+        }
+        String entryPath = className.replace('.' ,'/') + ".class";
+        List<byte[]> result = new ArrayList<>();
+        for (String codeSource : codeSources) {
+            try {
+                byte[] bytes = readClassFromCodeSource(codeSource, entryPath);
+                if (bytes != null) {
+                    result.add(bytes);
+                }
+            } catch (Exception e) {
+                logger.warn("/agent/restore: read {} from {} failed: {}" ,entryPath ,codeSource ,e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * code-source 形态（先判断后分派）：
+     *   jar:file:/app.jar!/BOOT-INF/lib/x.jar!/ → Spring Boot 嵌套 jar（外层逐层入内）
+     *   file:/path/classes/                     → exploded 目录 + 包路径直读
+     *   file:/path/x.jar 或 /path/x.jar         → 普通 jar（arthas 输出的裸路径无 file: 前缀）
+     */
+    private byte[] readClassFromCodeSource(String codeSource, String entryPath) throws Exception {
+        if (codeSource.startsWith("jar:file:")) {
+            String url = codeSource.substring("jar:file:".length());
+            // 尾部 !/ 是嵌套 jar URL 的收尾符
+            if (url.endsWith("!/")) {
+                url = url.substring(0 ,url.length() - 2);
+            }
+            String[] segments = url.split("!/");
+            byte[] jarBytes = readLocalBytes(urlDecode(segments[0]));
+            for (int i = 1; jarBytes != null && i < segments.length; i++) {
+                jarBytes = readJarEntry(jarBytes, urlDecode(segments[i]));
+            }
+            return jarBytes == null ? null : readJarEntry(jarBytes, entryPath);
+        }
+        String path = urlDecode(codeSource.startsWith("file:")
+                ? codeSource.substring("file:".length()) : codeSource);
+        // 目录形态以 / 收尾
+        if (path.endsWith("/")) {
+            return readLocalBytes(path + entryPath);
+        }
+        return readJarEntry(readLocalBytes(path), entryPath);
+    }
+
+    // 路径含 %20 等编码时解码；无 % 原样返回（避免 + 号被误转空格）
+    private String urlDecode(String path) {
+        if (!path.contains("%")) {
+            return path;
+        }
+        try {
+            return URLDecoder.decode(path ,"UTF-8");
+        } catch (Exception e) {
+            return path;
+        }
+    }
+
+    // 从 jar 字节流读一个条目（嵌套 jar 同路径；Boot 嵌套 jar 条目 STORED 未压缩，流式可读）
+    private byte[] readJarEntry(byte[] jarBytes, String entryName) {
+        if (jarBytes == null) {
+            return null;
+        }
+        JarInputStream jarInputStream = null;
+        try {
+            jarInputStream = new JarInputStream(new ByteArrayInputStream(jarBytes));
+            JarEntry jarEntry;
+            while ((jarEntry = jarInputStream.getNextJarEntry()) != null) {
+                if (jarEntry.getName().equals(entryName)) {
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    byte[] buf = new byte[8192];
+                    int len;
+                    while ((len = jarInputStream.read(buf)) > 0) {
+                        out.write(buf ,0 ,len);
+                    }
+                    return out.toByteArray();
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("/agent/restore: read jar entry {} failed: {}" ,entryName ,e.getMessage());
+        } finally {
+            if (jarInputStream != null) {
+                try { jarInputStream.close(); } catch (Exception ignored) {}
+            }
+        }
+        return null;
+    }
+
+    // 读本机文件（宿主 jar / exploded class 都在目标 JVM 同机磁盘上）
+    private byte[] readLocalBytes(String path) {
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        try {
+            return Files.readAllBytes(Paths.get(path));
+        } catch (Exception e) {
+            logger.warn("/agent/restore: read {} failed: {}" ,path ,e.getMessage());
+            return null;
+        }
+    }
+
+    // 原始字节落盘临时文件供 redefine（全局临时目录 Dict.TMP_DIR，启动时按系统设定）
+    private String writeTempClass(String className, byte[] bytes) throws Exception {
+        File dirFile = new File(Dict.TMP_DIR);
+        if (!dirFile.exists() && !dirFile.mkdirs()) {
+            throw new Exception("mkdirs failed: " + Dict.TMP_DIR);
+        }
+        String path = Dict.TMP_DIR + File.separator + className.replace('$' ,'_') + ".class";
+        Files.write(Paths.get(path), bytes);
+        return path;
     }
 }

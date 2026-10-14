@@ -31,7 +31,7 @@ public class Filter {
      * filter 查询与卸载优化，最好是通过filterName卸载（已做）
      */
 //    private String listFilterByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#tomcatContext=instances[%s].filterMaps.array'";
-    private String listFilterByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null)?(#a=#this.filterName,#this.urlPatterns[0]+\":\"+#this.filterName+\":\"+#filterConfigs[#a].filterClass):(null)}'";
+    private String listFilterByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#filterConfigs=instances[%s].filterConfigs,#filtermaps=instances[%s].filterMaps.array,#url=#filtermaps.{(#this.urlPatterns!=null and #this.urlPatterns.length>0)?(#a=#this.filterName,#this.urlPatterns[0]+\":\"+#this.filterName+\":\"+#filterConfigs[#a].filterClass):(null)}'";
     private String unloadFilterByVmtool = "vmtool -l -1 --action getInstances --className org.apache.catalina.core.StandardContext --express '#ctx=instances[%s],#c=0,#ms=#ctx.findFilterMaps().{? #this.filterName.equals(\"%s\")},{(#ms.size!=0)?(#ms.{#ctx.removeFilterMap(#ms[#c]),#ctx.filterDefs.remove(#ms[#c].filterName),#c=#c+1}):\"unExist\"}'";
     Logger logger = LoggerFactory.getLogger(this.getClass().getName());
     @RequestMapping("/list")

@@ -15,6 +15,7 @@ import com.kmba.arthas.SpringMvcInterceptor;
 import com.kmba.arthas.Timer;
 import com.kmba.arthas.Upgrade;
 import com.kmba.arthas.Valve;
+import com.kmba.Utils.OGNLUtils;
 import com.kmba.Utils.Util;
 import com.kmba.tunnel.ArthasWsWrapper;
 
@@ -81,6 +82,13 @@ public class CliHandler {
             return;
         }
         System.out.println("[+] connected");
+
+        // 连接建立后立刻关 OGNL strict：_useStricterInvocation 是 static final，
+        // HotSpot 会把 strict=true 期间跑热的方法按 true 折叠进编译码，之后对字段的
+        // flip/options 全部失效（-l all 中 proxyValve 五连拦的根因）。必须赶在任何
+        // 组件的 vmtool 求值之前翻成 false，让折叠落在 false 上
+        // 没必要做了，在connect的时候就已经设置了
+//        OGNLUtils.setStrictModeClose();
 
         // 执行命令，执行指定参数
         try {
@@ -193,6 +201,7 @@ public class CliHandler {
         sb.append("  java -jar KMBA.jar cli 54203 -u executor gently com.InjectExecutor\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u executor brutly com.InjectExecutor\n");
         sb.append("  java -jar KMBA.jar cli 54203 -u agent org.apache.nZcPC.HttpClientUtil\n");
+        sb.append("  java -jar KMBA.jar cli 54203 -u agent all\n");
         sb.append("  java -jar KMBA.jar cli 54203 -jad com.InjectServlet\n");
         sb.append("  java -jar KMBA.jar cli 54203 -vmtool javax.servlet.Servlet\n");
         sb.append("  java -jar KMBA.jar cli 54203 -vmtool javax.servlet.Servlet 439f5b3d\n");

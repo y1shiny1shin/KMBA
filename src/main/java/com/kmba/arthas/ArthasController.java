@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.kmba.Utils.ArthasWsRequest;
 import com.kmba.Utils.Dict;
+import com.kmba.Utils.OGNLUtils;
 import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,6 +155,11 @@ public class ArthasController {
                 }
             } catch (WebsocketNotConnectedException e) {}
 
+            // 与 CLI 一致：连接建立后立刻关 OGNL strict（static final 折叠机制
+            // 见 CliHandler 同名注释），否则连接后先跑的 vmtool 组件会把 true
+            // 折叠进编译码，之后的 flip/options 全部失效
+            OGNLUtils.setStrictModeClose();
+
             return "success";
         } catch (Exception e) {
             logger.error("Failed to connect to process " + pid, e);
@@ -172,6 +178,11 @@ public class ArthasController {
             if (!Util.checkConnect(ip, port, 3)) {
                 return "error: WebSocket port open but connect failed (" + ip + ":" + port + ")";
             }
+            // 与 connect() 一致：连接建立后立刻关 OGNL strict（static final 折叠
+            // 机制见 CliHandler 同名注释）；远端 arthas 若已被折叠成 true 则无法
+            // 挽救，但新起的远端会话必须赶在其 vmtool 求值之前翻成 false
+            OGNLUtils.setStrictModeClose();
+
             return "success";
         } catch (Exception e) {
             logger.error("Failed to connect to remote " + ip + ":" + port, e);

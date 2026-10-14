@@ -201,11 +201,15 @@ public class CompHandler {
                     return new Upgrade().unload(target);
                 }
             },
-            new Comp("agent",      "-u agent <className>") {
+            new Comp("agent",      "-u agent <className|all>  all=全清单强杀(restore), className=卸载指定transformer") {
                 JSONArray list() {
                     return new Agent().list();
                 }
                 String unload(String target, String extra) {
+                    // all → Agent 类强杀：全清单 redefine 回灌磁盘原始字节，覆盖无 transformer 的 redefine 型马
+                    if ("all".equals(target)) {
+                        return new Agent().restore(null);
+                    }
                     return new Agent().unload(target);
                 }
             },
@@ -268,7 +272,7 @@ public class CompHandler {
                 System.out.println("[!] className not found");
                 return 1;
             case "restore failed":
-                System.out.println("[!] unload failed: transformer removed but bytecode restore failed");
+                System.out.println("[!] bytecode restore failed");
                 return 1;
             default:
                 System.out.println(result);
@@ -385,6 +389,7 @@ public class CompHandler {
         // agent: 提示 canRetransform=true 的 transformer 需要重点关注（Agent 马注册于此）
         if ("agent".equals(c.name)) {
             System.out.println("  提示: canRetransform=true 的 transformer 需要重点关注（Agent 内存马注册于此）");
+            System.out.println("  提示: 能查出的马先卸载(-u agent <className>)再强杀一次(-u agent all)，查不出的马直接强杀(-u agent all)");
         }
 
         if (count == 0) {

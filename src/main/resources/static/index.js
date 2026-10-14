@@ -300,6 +300,8 @@ function panelRender(){
 
     $$('#mTitle').textContent = m.title;
     $$('#mDesc').textContent = m.desc || '';
+    // Agent类强杀按钮仅在有 kill 配置的模块（agent）显示
+    $$('#btnMKill').style.display = (m && m.kill) ? '' : 'none';
     const tbody = $$('#tbody');
     const rows = state.moduleRows[sel] || [];
 
@@ -722,6 +724,31 @@ const ui = {
         return { url, qs };
     },
 
+    async killAgent(){
+        const m = moduleById(state.selected);
+        if (!m || !m.kill){
+            dock.push('Agent类强杀', '该模块不支持强杀: ' + (m ? m.title : state.selected), 'warn');
+            return;
+        }
+        const ok = await choice(
+            'Agent类强杀',
+            m.title,
+            '对宿主类全清单执行强杀(redefine 回灌磁盘原始字节)?\n覆盖 transformer 检不出的 redefine 型内存马',
+            [
+                { v:'yes', t:'确认强杀', d:'将调用后端 restore 接口' },
+                { v:'no', t:'取消', d:'不执行任何操作' }
+            ]
+        );
+        if (ok !== 'yes'){
+            dock.push('Agent类强杀', '已取消', 'warn');
+            return;
+        }
+        const op = dock.push('Agent类强杀', '执行中: 全清单 restore...', 'busy');
+        const res = (await apiText(m.kill.url)).trim();
+        renderUnloadResult(op, res, m.title);
+        await ui.refreshModule(m.id);
+    },
+
     async scanModule(moduleId){
         const m = moduleById(moduleId);
         const rows = state.moduleRows[moduleId] || [];
@@ -909,6 +936,7 @@ $$('#btnStop').addEventListener('click', () => ui.stopArthas());
 
 $$('#btnMRefresh').addEventListener('click', () => ui.refreshSelected());
 $$('#btnMScan').addEventListener('click', () => ui.scanModule(state.selected));
+$$('#btnMKill').addEventListener('click', () => ui.killAgent());
 
 $$('#btnOvRefresh').addEventListener('click', () => ui.refreshOverview());
 $$('#btnOvScan').addEventListener('click', () => ui.scanAll());

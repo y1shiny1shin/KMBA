@@ -12,6 +12,7 @@
  *                  或有 choices 时 (picked) => url
  *     params     - 设置查询参数的函数 (qs, row) => void
  *     choices    - 可选，多选项 [{v, t, d}]，有此字段时卸载前显示选择弹窗
+ *   kill     - 可选，Agent 类强杀按钮配置 { url }，配置了该字段的模块才显示按钮
  */
 const MODULES = [
     // ── 概览 ──
@@ -48,8 +49,9 @@ const MODULES = [
         unload: { url: '/timer/unload',   params: (qs, r) => qs.set('className', r.className || '') } },
     { id: 'upgrade',  title: 'Upgrade',   desc: 'upgradeName -> className',  list: '/upgrade/list',
         unload: { url: '/upgrade/unload',  params: (qs, r) => qs.set('upgradeName', r.key || '') } },
-    { id: 'agent',    title: 'Agent',     desc: 'transformer className',     list: '/agent/list',
-        unload: { url: '/agent/unload',   params: (qs, r) => qs.set('className', r.className || '') } },
+    { id: 'agent',    title: 'Agent',     desc: 'transformer className · 能查出的马先卸载、再强杀一次；查不出的马直接强杀', list: '/agent/list',
+        unload: { url: '/agent/unload',   params: (qs, r) => qs.set('className', r.className || '') },
+        kill: { url: '/agent/restore' } },
 
     // ── SpringMVC ──
     { id: 'struts2Action',       title: 'Struts2 Action',       desc: 'urlPath -> className',  list: '/Struts2Action/list',

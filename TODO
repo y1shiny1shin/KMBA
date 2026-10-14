@@ -11,3 +11,4 @@
 已做：优化SpringFluxHandlerMethod的卸载逻辑
 已做：支持Jetty内存马（未知Jetty5适配性）
 已做：添加TongWeb支持（还好是国产）
+已做：优化Agent内存马查杀（现已支持redefine类与transformer类的查杀）

@@ -1,6 +1,19 @@
 package com.kmba.Utils;
 
+import java.io.File;
+
 public class Dict {
+    // 全局临时目录（启动时按系统设定：Windows 用用户临时目录，Linux 用 /tmp），后续临时文件统一存这里
+    public static String TMP_DIR;
+    static {
+        String osName = System.getProperty("os.name" ,"").toLowerCase();
+        if (osName.contains("win")) {
+            TMP_DIR = System.getProperty("java.io.tmpdir") + File.separator + "kmba";
+        } else {
+            TMP_DIR = "/tmp" + File.separator + "kmba";
+        }
+    }
+
     public static final String READ = "read";
     // 去除ANSI颜色
     public static final String PLAINTEXT = " |plaintext";
