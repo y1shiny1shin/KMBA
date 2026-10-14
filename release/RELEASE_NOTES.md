@@ -1,11 +1,9 @@
 ## 更新日志
 
-### v0.7
-- 支持transformer类Agent内存马（MemshellParty、JMG）
+### v0.8
+- 完整支持Agent内存马的查杀，redefine类Agent内存马的特性导致无法查出，故该版本设置了强移除功能
 - 修复bug
-- 优化输出逻辑，优化cli与web端的提示信息
-- 部分内存马适配高版本jdk、tomcat、Spring
-- 部分优化list/unload逻辑，现在可靠性更强
+- 优化部分日志输出逻辑
 
 ---
 
